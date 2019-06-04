@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 Gem::Specification.new do |spec|
-  spec.name          = "jekyll-theme-console"
+  spec.name          = "blog"
   spec.version       = "0.3.3"
   spec.authors       = ["krish-iyer"]
-  spec.email         = ["31370519+krish-iyer@users.noreply.github.com"]
+  spec.email         = ["krishnaniyer97@gmail.com"]
 
   spec.summary       = "A jekyll theme with inspiration from linux consoles for hackers, developers and script kiddies."
   spec.homepage      = "https://github.com/krish-iyer/jekyll-theme-console"
