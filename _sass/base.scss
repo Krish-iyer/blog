@@ -16,7 +16,7 @@ $container-max-width:  600px !default;
  */
 body { background-color: $background-color;  margin: 0 auto;  padding: 0;  font-family: $base-font-family;  font-size: $base-font-size;  color: $text-color;  text-align: left;  line-height: $base-line-height !important; }
 
-h1{ font-size: 14px;  margin: 0px;  margin-top: 22px;  font-weight: bold;  color: $text-color; }
+h1 { font-size: 14px;  margin: 0px;  margin-top: 22px;  font-weight: bold;  color: $text-color; }
 
 h2, h3, h4, h5, h6 { font-size: 16px;  margin: 0px;  margin-top: 22px;  font-weight: bold;  color: $text-color; }
 
