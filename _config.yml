@@ -1,14 +1,20 @@
-# Example Site settings
+title: 'krish-iyer.github.io'
+description: "dav1d and ARM assembly"
+baseurl: "/blog"
+url: "https://krish-iyer.github.io"
 
-#google_analytics: UA-NNNNNNNN-N
+header_pages:
+  - index.md
+  - personal.md
+  - about.md
+  - contact.md
 
-#header_pages:
-#  - index.md
-#  - about.md
+style: light
 
 #footer: 'follow us on <a href="https://twitter.com/">twitter</a>'
 
-#style: light # dark (default) or light
-
+# Build settings
+markdown: kramdown
+remote_theme: krish-iyer/blog
 plugins:
-  - jekyll-seo-tag
+ - jekyll-seo-tag
