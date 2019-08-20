@@ -1,6 +1,6 @@
 title: 'krish-iyer.github.io'
 description: "dav1d and ARM assembly"
-baseurl: "/blog"
+baseurl: "/"
 url: "https://krish-iyer.github.io"
 
 header_pages:
