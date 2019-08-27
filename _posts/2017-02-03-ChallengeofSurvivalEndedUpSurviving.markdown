@@ -6,7 +6,7 @@ headerImage: false
 tag:
 - Travel
 - Railway Life
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: FF6F00
 ---

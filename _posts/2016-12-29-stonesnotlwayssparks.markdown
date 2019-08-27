@@ -7,7 +7,7 @@ headerImage: false
 tag:
 - Life Philosophy
 - Corporate World
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: BF360C
 ---

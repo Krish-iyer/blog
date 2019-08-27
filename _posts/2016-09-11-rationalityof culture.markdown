@@ -6,7 +6,7 @@ headerImage: false
 tag:
 - society
 - Life Philosophy
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: 4A148C
 ---

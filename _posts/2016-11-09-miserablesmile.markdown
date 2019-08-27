@@ -7,7 +7,7 @@ headerImage: false
 tag:
 - Life Experiences
 - Philosophy
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: ff1744
 ---

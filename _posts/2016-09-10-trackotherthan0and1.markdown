@@ -5,7 +5,7 @@ date: 2016-09-10 10:51:47 +0530
 headerImage: false
 tag:
 - Life Philosophy
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: FF6F00
 ---

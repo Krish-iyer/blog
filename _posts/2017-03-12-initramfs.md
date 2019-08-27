@@ -5,7 +5,7 @@ date: 2017-03-12 10:51:47 +0530
 tag:
 - Linux
 - Processes of OS
-category: technical
+category: [personal]
 author: B Krishnan Iyer
 color: 1976D2
 ---

@@ -4,7 +4,7 @@ title: "Ignored Words"
 date: 2016-12-25 10:51:47 +0530
 tag:
 - Life Philosophy
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: 37474F
 ---

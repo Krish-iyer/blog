@@ -574,7 +574,7 @@ Here's the list and details of all commits. I have completed w_mask_444/420/422 
 ***added lines: 1543, removed lines: 272, total lines: 1271***
 
 
-|    Commit&nbsp;&nbsp;&nbsp;&nbsp;| &nbsp;&nbsp;Commit message &nbsp;&nbsp;|Files Changed|&nbsp;&nbsp;Insertions /Deletions |
+|    Commit&nbsp;&nbsp;&nbsp;&nbsp;| Commit message |Files Changed|&nbsp;&nbsp;Insertions /Deletions |
 |:-------------:|-------------------|:----:|:----:|
 |[3d94fb9](https://code.videolan.org/krish-iyer/dav1d/commit/3d94fb9aff5d2837c9ee0c13fff3d4e2424623ae)|arm64: mc: NEON implementation of w_mask_444/422/420 function|2|(+255) (-4)|
 |[1dc2dc7](https://code.videolan.org/krish-iyer/dav1d/commit/1dc2dc7d27bd0075684945b00b3539be429886aa)|arm64: mc: NEON implementation of blend, blend_h and blend_v function|2|(+410) (-3)|

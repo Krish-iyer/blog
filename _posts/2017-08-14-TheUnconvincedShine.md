@@ -4,7 +4,7 @@ title:  "The Unconvinced Shine"
 date: 2017-08-14 10:51:47 +0530
 tag:
 - Life Philosophy
-category: [personal]
+category: []
 author: B Krishnan Iyer
 color: FF6F00
 ---
