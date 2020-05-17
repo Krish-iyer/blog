@@ -85,7 +85,7 @@ textarea { vertical-align: top; }
 /**
  * Code and syntax highlighting
  */
-pre { background-color: #fffdd0;  border: none;  padding: 1em;  overflow:auto;  font-size: $code-font-size;  color: rgba(0, 0, 0, 0.95); font-family: $code-font-family; line-height: 1.7 !important;}
+pre { background-color: #f3f3f3;  border: none;  padding: 1em;  overflow:auto;  font-size: $code-font-size;  color: rgba(0, 0, 0, 0.95); font-family: $code-font-family; line-height: 1.7 !important;}
 .selected-text{
   background:#fff;
   color :#000;

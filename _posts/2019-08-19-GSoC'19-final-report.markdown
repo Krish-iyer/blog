@@ -48,7 +48,7 @@ Once you're done with installing ubuntu we can move further to build dav1d. Your
 
 You need to install [meson](https://mesonbuild.com/Quick-guide.html) and [ninja](https://ninja-build.org/) before proceeding any further
 
-```c
+```
 ~$ meson build --buildtype release
 ~$ ninja -C build
 ```
