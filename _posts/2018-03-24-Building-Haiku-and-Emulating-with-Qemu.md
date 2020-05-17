@@ -8,7 +8,7 @@ tag:
 - OS
 - Haiku
 - Qemu
-category: [personal]
+category: [haiku]
 ---
 
 ## Building Haiku from source code

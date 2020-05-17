@@ -7,7 +7,7 @@ header_pages:
   - index.md
   - about.md
   - contact.md
-
+  
 style: light
 
 #footer: 'follow us on <a href="https://twitter.com/">twitter</a>'
