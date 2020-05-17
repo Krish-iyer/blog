@@ -13,8 +13,7 @@ category: [haiku]
 
 ## Building Haiku from source code
 
-The following instructions are specifically to building haiku for x86_64 but you can always try building for
-other architectures too.
+The following instructions are specifically to building haiku for x86_64 but you can always try building for other architectures too.
 
 ### Clonning the source code
 
