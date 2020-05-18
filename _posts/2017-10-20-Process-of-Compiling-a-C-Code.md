@@ -6,7 +6,7 @@ date:   2017-10-20 10:51:47 +0530
 tag:
 - Compiler Processes
 - C Programming
-category: [personal]
+category: [randombin]
 ---
 We program to give a certain set of instructions to the computer but it’s tough and time-consuming to learn machine code and give instructions. So we have developed a high-level language which is converted into a low-level language(machine code) through certain tools and each tool is specific to the hardware which is going to understand the instructions. The tool to convert C code into machine code is called as compilers. For general purpose and compiling codes for Linux we use gcc and for AVR microcontrollers we use avr–gcc and PIC-microcontrollers we have pic-gcc.
 

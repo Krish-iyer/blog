@@ -6,8 +6,7 @@ tag:
 - Hardware
 - Software
 - Basics
-category: technical
-color: rgb(255,255,255)
+category: [randombin] 
 ---
 The first guess we make is of-course something small and which is a part of a big system. So I will try to convert all of your guesses to some fundamental knowledge so the next time you will more confident than just making a guess.
 
