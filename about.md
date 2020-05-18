@@ -4,4 +4,6 @@ title: /about
 permalink: /about/
 ---
 
-This blog page is specifically made for documenting ARM assembly code development for dav1d and get newbies familiar with the code base and API calls. It will also help in ARM assembly in general, mostly dealing with SIMD. 
+Hi! If you have landed to this webpage then mostly your interest align with control or embedded systems. The goal of posts would be to support the theories with relevant practical implementation(mostly simulations). Hence most of these posts will be goal oriented. Please feel free to contact me regarding clarity about any of my posts or related topics. If you want any topic to be discussed, please email with relevant subject. 
+
+Thanks :)
