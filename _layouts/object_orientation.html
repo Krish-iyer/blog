@@ -1,0 +1,9 @@
+---
+layout: default
+---
+
+{{ content }}
+{% assign contentwonl = content | strip_newlines %} {% unless contentwonl == ""  %} <br /> {% endunless %} <!-- add line break if there is any content -->
+
+{% pdf "/assets/Object_Orientation_Estimation.pdf" width=100% height=774px %}
+

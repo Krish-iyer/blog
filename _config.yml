@@ -17,3 +17,4 @@ markdown: kramdown
 remote_theme: krish-iyer/blog
 plugins:
  - jekyll-seo-tag
+ - jekyll-pdf-embed
