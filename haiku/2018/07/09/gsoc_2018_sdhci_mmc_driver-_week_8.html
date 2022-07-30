@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioWeek #8</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Week #8" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in SD Memory Card PhysicalLayer Specification. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config" />
+<meta property="og:description" content="Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in SD Memory Card PhysicalLayer Specification. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config" />
+<link rel="canonical" href="http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html" />
+<meta property="og:url" content="http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-07-09T20:09:54+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Week #8" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-07-09T20:09:54+05:30","datePublished":"2018-07-09T20:09:54+05:30","description":"Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in SD Memory Card PhysicalLayer Specification. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config","headline":"Week #8","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html"},"url":"http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Week #8</h1></center>
+</ul>
+
+<p>Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=Part1_Physical_Layer_Simplified_Specification_Ver1.10.jpg&amp;f=Part1_Physical_Layer_Simplified_Specification_Ver1.10.pdf&amp;e=EN_P1110">SD Memory Card PhysicalLayer Specification</a>. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config</p>
+
+<ol>
+  <li>SPI mode</li>
+  <li>Response register-&gt;R3</li>
+  <li>Abbrevation-&gt;READ_OCR</li>
+  <li>Description-&gt;Reads the OCR register of a card.</li>
+</ol>
+
+<p>From the details, I have set the command index bits to 58, response type to 10 and rest all bits are set to 0 after the RESET_ALL command. After setting up the command register, we read the R3 register i.e response registers and it was showing no response(0). For the more specific step of setting up command bits, there’s a flow chart on the page: 97 figure: 39 but still I was not sure about the SPI mode operation and for that, we enabled 4-bit mode in host control register and still it didn’t work.</p>
+
+<p>Keeping that aside, as suggested by @phoudoin I tried setting up the bus manager and creating the SDHCIBusController object toperform the sequences. For setting up the bus manager I have referred virtio bus manager and created a mmc_module.cpp forcreating a module, I have described a bit about the module in my previous blogs. Like any other module I need minimum functions, in this case, it was</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mmc_bus_init() // creates an object of the class(MMCBus) and binds with a pointer *_device
+mmc_bus_uninit() // delete the object created by init()  This module also has a device like any other module which has the function
+
+mmc_bus_added_device() // confirms the device and register the node You might have notices which creating the object with have used the operator new[], it actually returns a null pointer instead of a throwing an exception.
+</code></pre></div></div>
+
+<p>For defining the class we have created a file mmc_bus.cpp which currently only have few data members and member functions, it’s pretty much functioning. Now I need to bind the sequence functions like set_clock(0, reset() to the class. We have defined a pointer of structure sdhci_mmc_bus_interface which is defined in sdhci_pci.h, which will do the trick and can access the function pointers. For now, it’s like bus_manager if not attached to the main driver code. That leaves with our OCR issue incomplete. I will try to complete the power sequence and attach the bus manager to main driver code.</p>
+
+<p>I have pushed the code to <a href="https://review.haiku-os.org/#/c/haiku/+/318/">gerrit</a>, feel free to review it. I will improving the coding style more by this week :).</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>

@@ -1,0 +1,950 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.7">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2022-07-30T10:37:19+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">krish-iyer.github.io</title><subtitle>dav1d and ARM assembly</subtitle><entry><title type="html">GSoC’19 dav1d ARM NEON Optimization final evaluation report</title><link href="http://localhost:4000/dav1d/2019/08/19/GSoC'19-final-report.html" rel="alternate" type="text/html" title="GSoC’19 dav1d ARM NEON Optimization final evaluation report" /><published>2019-08-19T17:02:45+05:30</published><updated>2019-08-19T17:02:45+05:30</updated><id>http://localhost:4000/dav1d/2019/08/19/GSoC'19-final-report</id><content type="html" xml:base="http://localhost:4000/dav1d/2019/08/19/GSoC'19-final-report.html"><![CDATA[<p>So here we come to an end of my GSoC’19 project under VideoLAN.</p>
+
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+  <li><a href="#Project-Overview">Project Overview</a></li>
+  <li><a href="#Target-Device">Target Device</a>
+    <ol>
+      <li><a href="#Setting-up-the-device">Setting up the device</a></li>
+      <li><a href="#Building-dav1d">Building dav1d</a></li>
+      <li><a href="#Accessing-Counter-Registers">Accessing Counter Registers</a></li>
+    </ol>
+  </li>
+  <li><a href="#Directory-Structure">Directory Structure of dav1d</a></li>
+  <li><a href="#Analysing-C-function">Analysing C function</a></li>
+  <li><a href="#SIMD:-The-Idea">SIMD: The Idea</a>
+    <ol>
+      <li><a href="#Instructions-in-SIMD">Instructions in SIMD</a></li>
+    </ol>
+  </li>
+  <li><a href="#Declaring-NEON-ASM-Function">Declaring NEON ASM Function</a></li>
+  <li><a href="#Writing-NEON-ASM-Function-AARCH32">Writing NEON ASM Function for AARCH32</a>
+    <ol>
+      <li><a href="#Jump-Table-AARCH32">Jump Table for AARCH32</a></li>
+      <li><a href="#Implementation-AARCH32">Implmentation for AARCH32</a></li>
+      <li><a href="#Checkasm">Checkasm and Benchmarking</a></li>
+      <li><a href="#Optimization-AARCH32">Optimization for AARCH32</a>
+        <ol>
+          <li><a href="#Loop-Unrolling-AARCH32">Loop Unrolling AARCH32</a></li>
+          <li><a href="#Instruction-Reordering-AARCH32">Instruction Reordering AARCH32</a></li>
+          <li><a href="#Memory-Alignment">Memory Alignment</a></li>
+        </ol>
+      </li>
+    </ol>
+  </li>
+  <li><a href="#From-AARCH32-to-AARCH64">From AARCH32 to AARCH64</a></li>
+  <li><a href="#List-of-Commits">List of Commits</a></li>
+  <li><a href="#What's-Left-out">What’s Left out!</a></li>
+  <li><a href="#Final-Note-and-Things-I-learnt">Final Note and Things I learnt</a></li>
+</ol>
+
+<h2 id="-project-overview"><a name="Project-Overview"></a> Project Overview</h2>
+<p>The project dealt with analysing various functions implemented in C language and then implement same in ARM assembly using SIMD architecture for both 32 and 64 bit processors. This will enhance efficiency in terms of both execution speed and binary size. There was performance testing involved after the function was implemented in assembly by using counter registers which helped in benchmarking the number of instruction cycles a function gets executed. Benchmarking was done for improving the production quality of dav1d across ARMv8 and ARMv7 devices.</p>
+
+<p>The Project is guided by Martin Storsjö and Nathan Egge. There has been a significant contribution of Henrik Gramner in the review process. Also, special thanks of Jean-Baptiste Kempf to keep us motivated and thanks to VideoLAN for sponsoring odroid N2 development board.</p>
+
+<h2 id="-target-device"><a name="Target-Device"></a> Target Device</h2>
+<p>As the project dealt with development of dav1d for only ARM architecture, we selected <a href="https://www.hardkernel.com/shop/odroid-n2-with-4gbyte-ram/">odroid N-2</a> as our target development board which has quad Cortex A-73 and dual A-53 cluster. This will help us getting real performance figures than the emulated one which might not be accurate. The board chipset has ARMv8-A architecture with NEON and it supports both 64 and 32 bit execution states. Hence we can develop both AARCH32 and AARCH64 code on the device.</p>
+
+<h3 id="-setting-up-the-device"><a name="Setting-up-the-device"></a> Setting up the device</h3>
+
+<p>Now in order to boot the development board with an OS, there are two <a href="https://wiki.odroid.com/odroid-n2/os_images/ubuntu">ubuntu 18.04 LTS images</a> available with Kernel version 4.9.162 LTS. They will be officially supported Until Jan 2023. You can either boot the image to micro SD card using <a href="https://en.wikipedia.org/wiki/Dd_(Unix)">dd command</a>, <a href="https://www.balena.io/etcher/">balenaEtcher</a> or any other software like <a href="https://rufus.ie/">rufus</a> if you are using windows. Make sure that SPI boot select switch is on the MMC side so that it can boot from SD card and not onboard SPI memory.</p>
+
+<h3 id="-building-dav1d"><a name="Building-dav1d"></a> Building dav1d</h3>
+<p>Once you’re done with installing ubuntu we can move further to build dav1d. Your OS will be of 64 bit so it will be having support for 64 bit compiler and assembler natively but if you need to compile any AARCH32 code, you need some cross compiler tools(<em>compiler, assembler, gdb etc</em>). The source code of dav1d can be cloned from <a href="https://code.videolan.org/videolan/dav1d/">here</a>, the README file will also help in following with the compile and building dav1d. For a direct reference, I will mention it here.</p>
+
+<p>You need to install <a href="https://mesonbuild.com/Quick-guide.html">meson</a> and <a href="https://ninja-build.org/">ninja</a> before proceeding any further</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~$ meson build --buildtype release
+~$ ninja -C build
+</code></pre></div></div>
+<p>Now meson will use 64bit gcc and gas(<em>gnu assembler</em>) natively. So if you need to compile 32bit code then exec below mentioned commands. You can find cross_file.txt <a href="https://code.videolan.org/snippets/972">here</a>.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~$ apt-get install libc6:armhf libstdc++6:armhf gcc-arm-linux-gnueabihf binutils-arm-linux-gnueabihf-dbg
+~$ meson build --cross-file cross_file.txt
+</code></pre></div></div>
+
+<h3 id="-accessing-counter-registers"><a name="Accessing-Counter-Registers"></a> Accessing Counter Registers</h3>
+
+<p>Now you are all set with building dav1d. Furthermore, we want to count in how many instruction cycles does our asm function and c function gets executed. This will give us more clarity regarding how efficient asm code is with respect to the c code also we can tune and improve the existing asm function by comparing to the previous benchmark results. But somehow these counter registers are not accessible to the user and only to the kernel. So to access the counter registers we need to write a kernel module.</p>
+
+<p>Download <a href="https://code.videolan.org/krish-iyer/dav1d/snippets/1029">source</a> and <a href="https://code.videolan.org/krish-iyer/dav1d/snippets/1030">Makefile</a> into some directory, in my case it’s in a dir called <em>bench</em>. Following commands will help you through.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~$ cd bench
+~$ make
+~$ insmod enable_arm_pmu.ko
+</code></pre></div></div>
+
+<h2 id="-directory-structure"><a name="Directory-Structure"></a> Directory Structure</h2>
+
+<p>Now we have successfully setup the development environment but before editing any file or adding any ASM function, we must understand how files and directories have been organized. In the diagram below I have <strong>only mentioned the files and directories relevant for this project</strong>, there are other files and directories in the dav1d which I have not mentioned.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dav1d
+|__ src
+|  |__ arm
+|  |  |__ 32
+|  |  |  |__ mc.s
+|  |  |__ 64
+|  |  |  |__ mc.s
+|  |  |__ mc_init_tmpl.c
+|  |__ mc.h
+|  |__ mc_tmpl.c
+|__ tests
+|  |__ checkasm
+|  |  |__ mc.c
+</code></pre></div></div>
+
+<p>Description of directories and files</p>
+
+<ul>
+  <li><strong>src</strong> -&gt; <em>contains source files for all architectures</em></li>
+  <li><strong>src/arm</strong> -&gt; <em>contains assembly source files specific to ARM architecture</em></li>
+  <li><strong>src/arm/32</strong> -&gt; <em>contains arm assembly source files very specific to AARCH32</em></li>
+  <li><strong>src/arm/32/mc.s</strong> -&gt; <em>motion compensation source file of AARCH32 functions</em></li>
+  <li><strong>src/arm/64</strong> -&gt; <em>contains arm assembly source files very specific to AARCH64</em></li>
+  <li><strong>src/arm/64/mc.s</strong> -&gt;  <em>motion compensation source file of AARCH64 functions</em></li>
+  <li><strong>src/arm/mc_init_tmpl.c</strong> -&gt; <em>Source file for declaring NEON functions</em></li>
+  <li><strong>src/mc.h</strong> -&gt; <em>motion compensation source header file</em></li>
+  <li><strong>src/mc_tmpl.c</strong> -&gt; <em>motion compensation source file</em></li>
+  <li><strong>tests</strong> -&gt; contains <em>test files and checkasm tool source files</em></li>
+  <li><strong>tests/checkasm</strong> -&gt; <em>checkasm tool source diretory</em></li>
+  <li><strong>tests/checkasm/mc.c</strong> -&gt; <em>motion compensation test function source files</em></li>
+</ul>
+
+<h2 id="-analysing-c-function"><a name="Analysing-C-function"></a> Analysing C function</h2>
+<p>Now we are all done with setting up the development environment and understanding directory structure. So now we have to analyse the functions implemented in C language and implement the same in ARM assembly using NEON registers also compare the performance. We will also try to optimize it further if there’s room for that. We started first with blend/blend_v/blend_h functions. AFAIK, I think these functions belongs to motion compensation and hence located in the</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>src/mc_tmpl.c
+</code></pre></div></div>
+<p>and here’s blend function</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#define blend_px(a, b, m) (((a * (64 - m) + b * m) + 32) &gt;&gt; 6)
+static void blend_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp, 
+                        const int w, int h, const uint8_t *mask)
+{
+    do {
+        for (int x = 0; x &lt; w; x++) {
+            dst[x] = blend_px(dst[x], tmp[x], mask[x]);
+        }
+        dst += PXSTRIDE(dst_stride);
+        tmp += w;
+        mask += w;
+    } while (--h);
+}
+</code></pre></div></div>
+<p>So as it’s very clear that there are two loops, the inner loop is calling blend_px which is inturn executing</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>(((dst * (64 - mask) + tmp * mask) + 32) &gt;&gt; 6).
+</code></pre></div></div>
+
+<p>There are a total of 5 parameter which has been passed to the function. The final expression would be like.</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dst = (((dst * (64 - mask) + tmp * mask) + 32) &gt;&gt; 6). 
+</code></pre></div></div>
+
+<p>One can imagine 2-D matrix where the inner loop is accessing the elements of a specific row and outer loop is iterating each row specific for each parameter(<em>dst, tmp and mask</em>). After operating on all the elements of a row, the leap to the next address of the row is done by following exp.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dst += PXSTRIDE(dst_stride);
+tmp += w;
+mask += w;
+</code></pre></div></div>
+<p><strong>Points to be Noted:</strong></p>
+
+<ul>
+  <li>Evidently in the case of <em>dst</em> colums are contiguously placed in the memory but not rows, so the address of the next  row has to be updated after operating on all the row elements for a specific row.</li>
+  <li>In case of <em>tmp</em> and <em>mask</em> we can infer that they are contiguosly placed in memory of both row and column wise.</li>
+  <li><em>w</em> is the length of each row and <em>h</em> is length column.</li>
+</ul>
+
+<p>We will further look into the C function, while writing assembly code but these are all the highlights needed for now.</p>
+
+<h2 id="-simd-the-idea"><a name="SIMD:-The-Idea"></a> SIMD: The Idea</h2>
+
+<p>So to understand SIMD(single instruction multiple data) if you don’t already know about it or didn’t go through my previous blogs. The advantage over common assembly is we are going to fetch multiple data, keeping it in single register and do the operation with a single instruction.</p>
+
+<p>So, for example, you have two 128bit registers, normally if you try to store any number in that register, it will be represented in 128 binary and then stored. For example, if you want to store 2 in 128bit register then register value will be 126 leading zeroes and 10 in the end. In case of SIMD you can divide the whole register into even parts so it can be used to keep multiple values like keeping 2 and 4 in the same register rather than using two different registers. Now you have a maximum of 128 bit register so either you can accommodate 16 8bit or 8 16bit or 4 32 bit or 2 64 bit data on either of the registers.</p>
+
+<h3 id="-instructions-in-simd"><a name="Instructions-in-SIMD"></a> Instructions in SIMD</h3>
+
+<p>In normal assembly if you have to add four elements of two different arrays lets say array size is four for both and store it in a third array</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>int a[4] = {1, 2, 3, 4};    // first array
+int b[4] = {5, 6, 7, 8};    // second array
+int c[4];                   // elements to be store after operation
+</code></pre></div></div>
+<p>so what one would do is</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>for(int i = 0 ; i&lt;4; i++)
+    c[i] = a[i] + b[i];
+</code></pre></div></div>
+<p>assembly</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>loop:
+    ldr     r2, [r0]!   // r0 -&gt; address of a
+    ldr     r3, [r1]!   // r1 -&gt; address of b
+    add     r4, r2, r3  // adding and storing into another register 
+    str     r4, [r5]!   // r5 -&gt; address of c
+    subs    r6, r6, #1  // decrementing (intiially value of r6 is 4)
+    bgt     loop        // if greater than zero then loop back
+</code></pre></div></div>
+
+<p>Now For a given case let’s consider we can accommodate all the elements of <em>a</em> array(<em>if only size of the array is 128bit and if it’s more, then might have to use another register which will also increase the instructions use to operate on the data; here in a and b there are only 4 elements each of 32bit so we can accomodate all in a 128 bit register</em>) in one register and all the elements of <em>b</em> in another, hence you can add 4 numbers in a single instruction and store it in another register correspondingly. Unlike in common assembly language, where you have to fetch a single 32 bit number and add it and then store, this will be repeated for 4 times.</p>
+
+<p>SIMD:</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    vld1.32     {q0}, [r0]!
+    vld1.32     {q1}, [r1]!
+    vadd.s32    q2, q0, q1
+    vst1.32     {q2}, [r5]!
+</code></pre></div></div>
+<p>Hence we got rid of the inner loop and iterating through each element. That’s the advantage of SIMD over normal assembly.</p>
+
+<p>Now if you haven’t noticed, elements of a and b were contiguously arranged and hence we were able to load it into a single register. So specific for widths of the data or the data about which we are sure that they would be contiguously arranged in the memory like an array, we have different implementations, it helps us to reduce extra reg and optimize it more to gain similar functionality over fewer instruction cycles. I will elaborate this further in later sections</p>
+
+<h2 id="-declaring-neon-asm-function"><a name="Declaring-NEON-ASM-Function"></a> Declaring NEON ASM Function</h2>
+
+<p>Before even implementing the function, we need to hook the asm function because till now it was using C implementation and with the availability of asm function, we need it to prioritize asm function over C. So we need to declare the function and hook it to the object. The concerned file would be</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>src/arm/mc_init_tmpl.c
+</code></pre></div></div>
+<p>In mc_inti_tmpl.c all the ASM functions for both 32 bit and 64 bit are declared</p>
+
+<p>for example</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>decl_xyz_fn(dav1d_xyz_8bpc_neon);   # delcaring the function
+c-&gt;xyz = dav1d_xyz_8bpc_neon;       # hooking to the c object
+</code></pre></div></div>
+<p>Now if your function is only supported for 32bit arch then you need add under a specific macro like</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#if ARCH_ARM
+    c-&gt;xyz = dav1d_xyz_8bpc_neon;
+#endif
+</code></pre></div></div>
+
+<h2 id="-writing-neon-asm-function-for-aarch32"><a name="Writing-NEON-ASM-Function-AARCH32"></a> Writing NEON ASM Function for AARCH32</h2>
+<p>Now we are ready to implement our assembly function. Definitition of function should be under something like</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>function xyz_8bpc_neon, export=1
+</code></pre></div></div>
+<p>which will export the function in the format of  <strong>dav1d_xyz_8bpc_neon</strong> exactly like how you declared the function in <em>src/arm/mc_init_tmpl.c</em>.</p>
+
+<h3 id="-jump-table-for-aarch32"><a name="Jump-Table-AARCH32"></a> Jump Table for AARCH32</h3>
+
+<p>Now in the earlier sections we understood that we have specific code for specific widths which gauratees us that data has been arranged contiguously in the memory. So for example in blend function we form different subroutines for specific widths. So to know the value of width and select the right subroubtine we have a algorithm which maps w to the right implmentation.</p>
+
+<p>Our function has the width parameter <em>w</em>, which will be having value of 2, 4, 8, 16, 32, 64 or 128. Now, we want to map this to a table index for the jump table. When we calculate leading zeroes(<em>clz()</em>) for say for 128 as a 32 bit value, we will get 24, because the 32 bit binary representation of 128, 0x00000080, has got 24 leading zeros.</p>
+
+<p>When we do the same for 64, 0x0000000040, we get 25. With this, we map the w parameter values from the values 128, 64, 32, 16, 8, 4, 2, to values 0, 1, 2, 3, 4, 5, 6, which work as index into the jump table, to choose the right function implementation depending on the intended width.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>if(r8 == 0)
+{
+    goto 128f
+}
+elseif (r8 == 1)
+{
+    goto 640f
+}
+</code></pre></div></div>
+<p>Further more about jump table can be read <a href="https://en.wikipedia.org/wiki/Branch_table">here</a></p>
+
+<p>For symbols like 40f, 40b etc I have refered the link <a href="https://sourceware.org/binutils/docs/as/Symbol-Names.html#Symbol-Names">here</a>.</p>
+
+<p>Jump table for blend function is as follows:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        push            {r4-r5,lr}              // preserve registers
+        ldr             r4,  [sp, #12]          // r4 &lt;- h
+        ldr             r5,  [sp, #16]          // r5 &lt;- mask
+        clz             lr,  r3                 // lr &lt;- leading zeroes of w
+        adr             r3,  L(blend_tbl)       // mov address of blend_tbl to r3 
+        sub             lr,  lr,  #26           // lr &lt;- lr - 26
+        ldr             lr,  [r3, lr, lsl #2]   // since each entry is 4 bytes we multiply lr by 4
+        add             r3,  r3,  lr            // offset is added to the address if blend_tbl
+        bx              r3
+</code></pre></div></div>
+<p>Further below</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    .word 320f  - L(blend_tbl) + CONFIG_THUMB
+</code></pre></div></div>
+<p>it’s something like (32f - tbl) + tbl.</p>
+
+<p>This kind of form is followed in all the functions in dav1d, in order to maintain the consistency and to work round some bugs in other tools in the case of AARCH32.</p>
+<h3 id="-implmentation-for-aarch32"><a name="Implementation-AARCH32"></a> Implmentation for AARCH32</h3>
+
+<p>So let’s try write blend function in ARM assembly using NEON registers as we already analysed the C code and as the code is specific for different widths let’s write for w = 4. Similar to the example above in SIMD section we are loading 4 values at a time. dst, tmp and mask are 0f 8 bit hence we can accommodate 4 values in 32 bits.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>40:
+        vmov.i8         d22, #64
+4:
+        vld1.32         {d2[]},     [r5]! // load mask
+        vld1.32         {d1[]},     [r2]! // load tmp
+        vld1.32         {d0[]},     [r0]  // load dst
+        subs            r4,  r4,  #1      // h--
+        vsub.i8         d3,  d22, d2      // 64 - mask
+        vmull.u8        q8,  d1,  d2      // tmp * mask
+        vmlal.u8        q8,  d0,  d3      // ((dst * (64 - mask)) + mask * tmp)
+        vrshrn.i16      d20, q8,  #6      // (((dst * (64 - mask) ) + mask * tmp) + 32) &gt;&gt;6
+        vst1.32         {d20[0]}, [r0], r1// dst = (((dst * (64 - mask) ) + mask * tmp) + 32) &gt;&gt;6; also update dst with next addr
+        bgt             4b
+        pop             {r4-r5,pc}
+</code></pre></div></div>
+<h3 id="-checkasm-and-benchmarking"><a name="Checkasm"></a> Checkasm and Benchmarking</h3>
+
+<p>Now that you have implmented the function, it’s time to check if it’s giving the right expected output and if so then try to benchmark it.</p>
+
+<p>Checkasm is basically a tool which matches the C and ASM function’s outputs, given the same random input. 
+<strong>Note</strong>: each you make change to the code, you have build it again and check with the following commands.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~$ ninja -C build
+~$ ./build/tests/checkasm
+</code></pre></div></div>
+<p>You can find test functions related to motion compensation under <em>tests/checkasm/mc.c</em>, these functions can be edited according to your need like you may wanna write function for w = 4 alone and have to check that so you can make the corresponding changes such that test function won’t check for higher widths. If everything goes good it will show the below output</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>heckasm: using random seed 1250625806
+NEON:
+ - looprestoration_8bpc.wiener  [OK]
+ - mc_8bpc.mc                   [OK]
+ - mc_8bpc.mct                  [OK]
+ - mc_8bpc.avg                  [OK]
+ - mc_8bpc.w_avg                [OK]
+ - mc_8bpc.mask                 [OK]
+ - mc_8bpc.w_mask               [OK]
+ - mc_8bpc.blend                [OK]
+ - mc_8bpc.blend_v              [OK]
+ - mc_8bpc.blend_h              [OK]
+checkasm: all 574 tests passed
+</code></pre></div></div>
+<p>if something’s wrong it will output like</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  blend_w4_8bpc_neon (../tests/checkasm/mc.c:353)
+ - mc_8bpc.blend                [FAILED]
+</code></pre></div></div>
+<p>and to see what’s the expected output and what your fuction is giving, you need to <em>-v</em> with the command</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~$ ./build/tests/checkasm -v
+</code></pre></div></div>
+<p>it will output something like</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dst:
+ 26 84 76 c3     26 84 76 46    ...x
+ 7b 65 8a 8b     7b 65 6e 2f    ..xx
+ a8 64 23 22     a8 64 20 1b    ..xx
+ cb 9b 34 c4     cb 9b 31 14    ..xx
+dst:
+ e7 4b 7d 52     e7 4b 8f 51    ..xx
+ 49 b5 a9 a4     49 b5 ac 44    ..xx
+ 9b 93 82 a8     9b 93 5c 81    ..xx
+ 80 c2 52 85     80 c2 12 8d    ..xx
+ 2c 22 ba 70     2c 22 f4 05    ..xx
+ a4 3b d8 66     a4 3b dd 4a    ..xx
+ 3f 9e dd ba     3f 9e b8 b2    ..xx
+ 5d b8 72 a5     5d b8 82 a5    ..x.
+</code></pre></div></div>
+<p>Where <em>’.’</em> denotes the values are matched and <em>‘x’</em> denotes values didn’t match. One can also use gdb for debugging but it’s usually a time consuming process.</p>
+
+<p>After the fixing the issue, to benchmark the function the following command can be executed.</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>~$ ./build/tests/checkasm  -v --bench=blend
+</code></pre></div></div>
+<p>By default this will execute code on A73 but if you want the code to run A53 only, it can be dont with</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>taskset -c 0 ./build/tests/checkasm -v --bench=blend
+</code></pre></div></div>
+<p>Which will output, this will only work if you have accessed the counter registers correctly.</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>blend_w4_8bpc_c: 201.2
+blend_w4_8bpc_neon: 49.8
+</code></pre></div></div>
+<p>Now here we can clearly see that our code is 5 times efficient than c code.</p>
+
+<h3 id="-optimization-for-aarch32"><a name="Optimization-AARCH32"></a> Optimization for AARCH32</h3>
+
+<p>Although our code is efficient, we can further increase the efficiency by optimizing the code.</p>
+
+<p>In the project I have touched 3 aspects of optimization.</p>
+
+<ol>
+  <li>Loop Unrolling</li>
+  <li>Instruction reordering</li>
+  <li>Memory Alignment</li>
+</ol>
+
+<h3 id="-loop-unrolling"><a name="Loop-Unrolling"></a> Loop Unrolling</h3>
+
+<p>For example we have a loop</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>for(int i=0 ; i&lt;n ; i++)
+{
+    // some exp
+}
+</code></pre></div></div>
+<p>Now the exp would be set of instruction in program memory and to re-execute those set of instruction, PC(pogram counter) has to be reset to the same instruction and this has to be done n times after executing the code each time. So in a way branching is expensive than sequentially executing the program in most of the cases, branching certainly takes more instruction cycles(<em>takes extra instruction cycles to pop the address of the instruction from the stack and write to the PC</em>). So now we can’t write that exp n times but can reduce branching.</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>for(int i=0 ; i&lt;n ; i+=2)
+{
+    // some exp
+    // repeat the above exp
+}
+</code></pre></div></div>
+<p>Also this gives us room to reoder structure and make the code more optimized.</p>
+
+<p>Let’s try this in blend above blend function</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>40:
+        vmov.i8         d22, #64        
+        add             r12, r0,  r1    // next stride dst += PXSTRIDE(dst_stride)
+        lsl             r1,  r1,  #1    
+4:
+        vld1.u8         {d2},     [r5]! // loading 8 16bit values i.e two strides together
+        vld1.u8         {d1},     [r2]!
+        vld1.32         {d0[]},   [r0]
+        vld1.32         {d0[1]},  [r12]
+        subs            r4,  r4,  #2    
+        vsub.i8         d3,  d22, d2    
+        vmull.u8        q8,  d1,  d2    
+        vmlal.u8        q8,  d0,  d3    
+        vrshrn.i16      d20, q8,  #6    
+        vst1.32         {d20[0]}, [r0], r1        
+        vst1.32         {d20[1]}, [r12], r1        
+        bgt             4b     
+        pop             {r4-r5,pc}   
+</code></pre></div></div>
+<p>Now let’s benchmark and compare with the previous one</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Now:
+blend_w4_8bpc_neon: 34.3
+Earlier
+blend_w4_8bpc_neon: 49.8
+</code></pre></div></div>
+<p>As you can see there’s significant amount affect.</p>
+
+<h3 id="-instruction-reordering"><a name="Instruction-Reordering"></a> Instruction Reordering</h3>
+
+<p>For example</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>a = b + c;
+d = a + b;
+c = c + 1;
+</code></pre></div></div>
+<p>Now as you can see in first expression, a is getting updated and used in the second. So second experssion can’t be executed until first expression gets executed. Therefore this set of instrusctions can be reordered as</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>a = b + c;
+c = c + 1;
+d = a + b;
+</code></pre></div></div>
+<p>Again this has been more affective on A53 than A73.</p>
+
+<p>Let’s try this in blend function</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>40:
+        vmov.i8         d22, #64        
+        add             r12, r0,  r1    
+        lsl             r1,  r1,  #1    
+4:
+        vld1.u8         {d2},     [r5,  :64]!
+        vld1.u8         {d1},     [r2,  :64]!
+        vld1.32         {d0[]},   [r0,  :32]
+        subs            r4,  r4,  #2    
+        vld1.32         {d0[1]},  [r12, :32]
+        vsub.i8         d3,  d22, d2    
+        vmull.u8        q8,  d1,  d2    
+        vmlal.u8        q8,  d0,  d3    
+        vrshrn.i16      d20, q8,  #6    
+        vst1.32         {d20[0]}, [r0,  :32], r1        
+        vst1.32         {d20[1]}, [r12, :32], r1        
+        bgt             4b     
+        pop             {r4-r5,pc}      
+</code></pre></div></div>
+<p>and now let’s compare the benchmarks</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Now
+blend_w4_8bpc_neon: 33.5
+Earlier
+blend_w4_8bpc_neon: 34.3
+</code></pre></div></div>
+<p>There’s hasn’t been great difference but as you proceed to higher widths there will be room for more reordering, in this case we had enough registers and also latency issues didn’t pop here. only in the vmull/vmlal/vrshrn which can’t help.</p>
+
+<p>As another example for w = 8 case</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>80:
+        vmov.i8         d16, #64
+        add             r12, r0,  r1
+        lsl             r1,  r1,  #1
+8:
+        vld1.u8         {q1},  [r5,  :128]!
+        vld1.u8         {q2},  [r2,  :128]!
+        vld1.u8         {d0},  [r0,  :64]
+        vsub.i8         d17, d16, d2
+        vld1.u8         {d1},  [r12, :64]
+        subs            r4,  r4,  #2
+        vsub.i8         d18, d16, d3
+        vmull.u8        q3,  d2,  d4
+        vmlal.u8        q3,  d0,  d17
+        vmull.u8        q10, d3,  d5
+        vmlal.u8        q10, d1,  d18
+        vrshrn.i16      d22, q3,  #6
+        vrshrn.i16      d23, q10, #6
+        vst1.u8         {d22}, [r0,  :64], r1
+        vst1.u8         {d23}, [r12, :64], r1
+        bgt             8b
+        pop             {r4-r5,pc}
+</code></pre></div></div>
+
+<p>as you can see we haven’t ordered instructions like</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        vmull.u8        q3,  d2,  d4
+        vmlal.u8        q3,  d0,  d17
+        vrshrn.i16      d22, q3,  #6
+        vmull.u8        q10, d3,  d5
+        vmlal.u8        q10, d1,  d18
+        vrshrn.i16      d23, q10, #6
+</code></pre></div></div>
+<p>reason being q3 gets update in vmlal and then if we keep vrsrhn just after that may have to wait for q3 to get update and then only it can be executed. Hence we kept at the end as far as possible.</p>
+
+<h3 id="-memory-alignment"><a name="Memory-Alignment"></a> Memory Alignment</h3>
+
+<p>For example</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vld1.u8         {q2,  q3},  [r5,  :128]!
+</code></pre></div></div>
+<p>can also be written as</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>vld1.u8         {q2,  q3},  [r5]!
+</code></pre></div></div>
+
+<p>But the later pretty much uses more instruction cycles than the before. Memory alignment  gaurantees that memory will be aligned by so and so bits. This was only affective on A8 and A9 and not on A53 and A73.</p>
+
+<h2 id="-from-aarch32-to-aarch64"><a name="From-AARCH32-to-AARCH64"></a> From AARCH32 to AARCH64</h2>
+
+<p>The code for 32 bit and 64 bit is almost exactly same except there is no overlapping like q and d registers and there are more register than in AARCH32 with a bit different naming scheme. In 64 bit Jump table is placed in the end and something like and it happened to be different than AARCH32.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    .hword L(blend_tbl) - 32b
+</code></pre></div></div>
+<p>which is tbl - (tbl - 32b). Where tbl has the address. tbl is placed in the and end for a higher value that’s why the expression is like subtracting 32b from tbl.</p>
+
+<p>There been a doc very useful for understanding 64bit, download link is <a href="https://www.element14.com/community/servlet/JiveServlet/previewBody/41836-102-1-229511/ARM.Reference_Manual.pdf">here</a>. You can search of instruction fopr AARCH64 corresponding to AARCH32. ARM assembler reference manual can be downloaded from <a href="http://infocenter.arm.com/help/topic/com.arm.doc.dui0489c/DUI0489C_arm_assembler_reference.pdf">here</a>.</p>
+
+<p>For an example blend’s 64 bit for w=4 is as follows</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>function blend_8bpc_neon, export=1
+        adr             x6,  L(blend_tbl)
+        clz             w3,  w3
+        sub             w3,  w3,  #26
+        ldrh            w3,  [x6,  x3,  lsl #1]
+        sub             x6,  x6,  w3,  uxtw
+        movi            v4.16b,  #64
+        add             x8,  x0,  x1
+        lsl             w1,  w1,  #1
+        br              x6
+4:
+        ld1             {v2.d}[0],   [x5],  #8
+        ld1             {v1.d}[0],   [x2],  #8
+        ld1             {v0.s}[0],   [x0]
+        subs            w4,  w4,  #2
+        ld1             {v0.s}[1],   [x8]
+        sub             v3.8b,   v4.8b,   v2.8b
+        umull           v5.8h,   v1.8b,   v2.8b
+        umlal           v5.8h,   v0.8b,   v3.8b
+        rshrn           v6.8b,   v5.8h,   #6
+        st1             {v6.s}[0],   [x0],  x1
+        st1             {v6.s}[1],   [x8],  x1
+        b.gt            4b
+        ret
+</code></pre></div></div>
+<h2 id="-list-of-commits"><a name="List-of-Commits"></a> List of Commits</h2>
+
+<p>Here’s the list and details of all commits. I have completed w_mask_444/420/422 and blend/blend_h/blend_v for both AARCH32 and AARCH64 architecture and they are succssfully merged.</p>
+
+<p><strong><em>added lines: 1543, removed lines: 272, total lines: 1271</em></strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Commit    </th>
+      <th>Commit message</th>
+      <th style="text-align: center">Files Changed</th>
+      <th style="text-align: center">  Insertions /Deletions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/krish-iyer/dav1d/commit/3d94fb9aff5d2837c9ee0c13fff3d4e2424623ae">3d94fb9</a></td>
+      <td>arm64: mc: NEON implementation of w_mask_444/422/420 function</td>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">(+255) (-4)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/krish-iyer/dav1d/commit/1dc2dc7d27bd0075684945b00b3539be429886aa">1dc2dc7</a></td>
+      <td>arm64: mc: NEON implementation of blend, blend_h and blend_v function</td>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">(+410) (-3)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/b0d00020e06a3528977b977c61a252e91969b1a0">b0d0002</a></td>
+      <td>arm: mc: Speed up due to memory alignment in ldr/str instructions</td>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">(+104)(-104)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/407c27db02c7ed1732d1fe2a3e89e54bd29427ef">407c27d</a></td>
+      <td>arm: mc: neon: Merge load and other related operations in blend/blend_h/blend_v functions</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">(+79) (-97)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/d4df861993010586fdf61794f12ae923891872ac">d4df861</a></td>
+      <td>arm: mc: neon: Reduce usage of general purpose registers in blend/blend_v functions</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">(+26) (-27)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/b704a993f61b1b07b1f3ac478935992239383084">b704a99</a></td>
+      <td>arm: mc: neon: Use vld with ! post-increment instead of a register in blend/blend_h/blend_v function</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">(+32) (-31)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/b271590aae34d3aa802d2e401b0c051ac4b4eeba">b271590</a></td>
+      <td>arm: mc: NEON implementation of w_mask_444/422/420 function</td>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">(+242) (-0)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/632b4876e3869aea085427cc79f5d08487d848de">632b487</a></td>
+      <td>arm: mc: neon: Improvement in blend_v function</td>
+      <td style="text-align: center">1</td>
+      <td style="text-align: center">(+3) (-6)</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><a href="https://code.videolan.org/videolan/dav1d/commit/a1e3f35842de92b526422af05360c84cf233f07f">a1e3f35</a></td>
+      <td>arm:mc: NEON implementation of blend, blend_h and blend_v function</td>
+      <td style="text-align: center">2</td>
+      <td style="text-align: center">(+422) (-0)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="-whats-left-out"><a name="#What's-Left-out"></a> What’s Left out!</h2>
+
+<p>Here’s a <a href="https://code.videolan.org/videolan/dav1d/issues/215">list</a> of functions to be implemented in ARM. I would like to continue with VideoLAN and my first goal would be to port warp8x8 functiom from AARCH64 to AARCH32.</p>
+
+<h2 id="-final-note-and-things-i-learnt"><a name="Final-Note-and-Things-I-learnt"></a> Final Note and Things I learnt</h2>
+
+<p>It has been a great journey and a steep learning curve in my career. Right from the first email to VideoLAN, they were very patient, I have started learning ARM assembly from February’19 and with the right guidance, we were able to produce quality code. Following things I leant throughout the project</p>
+
+<ol>
+  <li>ARM assembly with NEON architecture for both 32 and 64 bit</li>
+  <li>Understanding of dav1d codebase</li>
+  <li>Complete the tasks on time</li>
+  <li>Understand and respond in the review process</li>
+</ol>]]></content><author><name></name></author><category term="dav1d" /><summary type="html"><![CDATA[So here we come to an end of my GSoC’19 project under VideoLAN.]]></summary></entry><entry><title type="html">dav1d+ARM+NEON+Optimization</title><link href="http://localhost:4000/dav1d/2019/06/08/dav1d-arm-neon-optimization.html" rel="alternate" type="text/html" title="dav1d+ARM+NEON+Optimization" /><published>2019-06-08T17:02:45+05:30</published><updated>2019-06-08T17:02:45+05:30</updated><id>http://localhost:4000/dav1d/2019/06/08/dav1d-arm-neon-optimization</id><content type="html" xml:base="http://localhost:4000/dav1d/2019/06/08/dav1d-arm-neon-optimization.html"><![CDATA[<p>So now let’s talk about the project I am working on but before further proceedings let me remind about the tutorial to <a href="https://thinkingeek.com/arm-assembler-raspberry-pi/">refer</a> to, if you have understood those or already know about ARM assembly then we are on the same page.</p>
+
+<p>My project is “dav1d ARM NEON optimization” and, I have applied under GSoC’19 program and the project is initiated and maintained by VideoLAN and FFmpeg. So dav1d is an av1 decoder which like any other decoder aspires to be fast and efficient. It is available for x86, x64, ARMv7, ARMv8 architectures, my project deals with ARM arch specifically ARMv7-a. So to make code exec efficient and fast we need to cut-off in between generalised high-level language compiler and directly talk with assembly lang to the processor(communication with a native language on a country land will always be a fine interpretation to that of foriegn language). It makes code development bit tough but trust me when you see the difference, it’s all worth the patience, time and effort.</p>
+
+<p>Now, we are not just writing assembly code for the different filters and functions of decoder but as humans, we never settle for less, so we exploit some extra functionalities.</p>
+
+<p>There are a total of 16  registers, we denote it with R and a CPSR in the processor. We also got a co-processor, we use SIMD instruction with following floating point registers sets and execute single instruction on multiple data(SIMD).</p>
+
+<p><img src="http://infocenter.arm.com/help/topic/com.arm.doc.dht0002a/graphics/advanced_simd_and_vfp_register_set.svg" alt="" /></p>
+
+<p>So now I am gonna demonstrate an example to get clear about how things really work.</p>
+
+<p>C Code</p>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span><span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="n">i</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">;</span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+    <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+</code></pre></div></div>
+<p>Corresponding assembly code with general purpose registers</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.data
+a:
+    .int 4, 4, 4, 4
+b:
+    .int 8, 8, 8, 8
+c:
+    .int 0, 0, 0, 0
+
+.text
+.global main
+main:
+    ldr r0,addr_a
+    ldr r1,addr_b
+    ldr r2,addr_c
+    mov r4,#3
+loop:
+    cmp r4,#0
+    beq end 
+    ldr r5,[r0]
+    ldr r6,[r1]
+    ldr r7,[r2]
+    add r7,r5,r6
+    str r7,[r2]
+    add r0,r0,#4
+    add r1,r1,#4
+    add r2,r2,#4
+    sub r4,#1
+    b loop
+end:
+    bx lr
+
+addr_a: .word a
+addr_b: .word b
+addr_c: .word c
+</code></pre></div></div>
+<p>Assembly code with SIMD</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+.data
+a:
+    .int 4, 4, 8, 8
+b:
+    .int 8, 8, 8, 8
+c:
+    .int 0, 0, 0, 0
+
+.text
+.global main
+main:
+    ldr r0,addr_a
+    ldr r1,addr_b
+    ldr r2,addr_c
+    vld1.8 {q0},[r0]! 
+    vld1.8 {q1},[r1]!
+    vadd.I8 q2,q0,q1 // operated on multiple data at once
+    vst1.8 {q2},[r2]!// hence loop not required to iterate    
+    bx lr            // through each element
+
+addr_a: .word a
+addr_b: .word b
+addr_c: .word c
+</code></pre></div></div>
+<p>So in regards with assembly with SIMD, we need not loop at all, we are executing the instruction on 4 int type data at once. Hence if need to loop 16 times in C code, we need to only go for 4 with SIMD implementation. We also do some reordering with instructions and loop unrolling to even more optimize the code. I will share tricks and tips in the upcoming blog posts.</p>
+
+<p>In the next blog post, I would start sharing my weekly progress and we will have an insight into the dav1d functions and implementations</p>]]></content><author><name></name></author><category term="dav1d" /><summary type="html"><![CDATA[So now let’s talk about the project I am working on but before further proceedings let me remind about the tutorial to refer to, if you have understood those or already know about ARM assembly then we are on the same page.]]></summary></entry><entry><title type="html">Introduction to ARM Assembly and dav1d</title><link href="http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d.html" rel="alternate" type="text/html" title="Introduction to ARM Assembly and dav1d" /><published>2019-06-04T17:02:45+05:30</published><updated>2019-06-04T17:02:45+05:30</updated><id>http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d</id><content type="html" xml:base="http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d.html"><![CDATA[<h2 id="general-assembly">General Assembly</h2>
+<p>The first thing to know about the assembly is, it’s very much architecture dependant so for every different architecture there’s a completely different story. Secondly, it’s hard to get but that makes it more interesting.</p>
+
+<p>So before stepping into ARM assembly, I have written assembly programs and studied architecture in detail for mid-range micro-controllers. Also, I have done bit study for TMS320C6000 and TMS320F28027, they are like DSP processors so data lines and processor units are bit different there.</p>
+
+<h2 id="why-assembly">Why Assembly</h2>
+
+<p>Besides the fact that it makes you feel more closer to the hardware and you have more control over things like processor, co-processor, peripherals etc, it is also very efficient, so mostly you have seen assembly codes for small memory devices with comparatively low processing power. The best example would be <a href="https://kolibrios.org/en/">Kolibri OS</a> which is forked from <a href="http://menuetos.net/">Manuet OS</a> repo.</p>
+
+<p>It’s ok if you explain French-speaking person in English but communicating in French would make things straight forward and wouldn’t require much effort to understand on both the sides.</p>
+
+<h2 id="how-to-get-started-with-arm-assembly">How to get started with ARM Assembly</h2>
+
+<p>This <a href="https://thinkingeek.com/arm-assembler-raspberry-pi/">blog</a> will get you to hang for a start, don’t get afraid if you don’t follow anything with first few blog posts, later it’s all gonna make sense. Follow through the exercises and important part to focus would be Matrix Multiply and SIMD ones. Also, Roger will clear all your doubts, there might be some delay but it would be worth the patience.</p>
+
+<p>Now arm assembly for ARMv7 and ARMv8 has some differences with the instruction, not to forget that they are 32bit and 64bit processor respectively, that might change the whole perspective of code implementation.</p>
+
+<h2 id="dav1d-neon-optimization">dav1d NEON Optimization</h2>
+
+<p><a href="https://code.videolan.org/videolan/dav1d">dav1d</a> is an av1 decoder more about dav1d you can read from <a href="http://www.jbkempf.com/blog/post/2018/Introducing-dav1d">j-b’s blog</a>. In order to achieve faster execution we need to optimize the code and also use some co-processor’s capabilities to make it much more faster, so here comes NEON into play, it’s built on co-processor 10 and 11(IIRC). So with this one, we get access to vector registers and we can execute single instruction on multiple data(SIMD).</p>
+
+<p>I will share some of the benchmarks in upcoming blog posts which compares C implementation vs Assembly implementation.</p>]]></content><author><name></name></author><category term="dav1d" /><summary type="html"><![CDATA[General Assembly The first thing to know about the assembly is, it’s very much architecture dependant so for every different architecture there’s a completely different story. Secondly, it’s hard to get but that makes it more interesting.]]></summary></entry><entry><title type="html">Week #11</title><link href="http://localhost:4000/haiku/2018/08/06/gsoc_2018_sdhci_mmc_driver-_week_11.html" rel="alternate" type="text/html" title="Week #11" /><published>2018-08-06T21:24:03+05:30</published><updated>2018-08-06T21:24:03+05:30</updated><id>http://localhost:4000/haiku/2018/08/06/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_11</id><content type="html" xml:base="http://localhost:4000/haiku/2018/08/06/gsoc_2018_sdhci_mmc_driver-_week_11.html"><![CDATA[<p>Hello everyone, We are in the final week of GSoC’18 program and yesterday our <a href="https://git.haiku-os.org/haiku/commit/?id=25b6a6f19b13680a759cffecebf60d0b7e76d3d3">code</a> has successfully <a href="https://review.haiku-os.org/#/c/haiku/+/318/">merged</a>. It got crashed in the first build because we thought we would add the code but disable the build currently but we didn’t test the case when device manager will try to find the driver in a certain directory which we <a href="https://github.com/krish-iyer/haiku/blob/sdhci_mmc_driver/src/system/kernel/device_manager/device_manager.cpp#L1899">hardcoded</a> at the time of loading the module. So we just changed it to an OR condition where it won’t be able to find the driver binary but still be able to boot the OS in any case.</p>
+
+<p>I would like to elaborate where exactly the project is stuck now. In <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=Part1_Physical_Layer_Simplified_Specification_Ver1.10.jpg&amp;f=Part1_Physical_Layer_Simplified_Specification_Ver1.10.pdf&amp;e=EN_P1110">Physical Layer spec version 1.10</a>  pg 97 and section 7.2 has a flow chart which clearly specifies the to issue the command and read the OCR value from which will be able to estimate the exact supported voltage value. So for the start, we need to issue
+CMD0 which will reset the card. In pg 54 and section 4.7.4, they mentioned the command which is as follows.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>CMD Index</th>
+      <th style="text-align: center">SPI Mode</th>
+      <th style="text-align: right">Argument</th>
+      <th>Resp</th>
+      <th style="text-align: center">Abbreviation</th>
+      <th style="text-align: right">Command Desp</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CMD0</td>
+      <td style="text-align: center">yes</td>
+      <td style="text-align: right">none</td>
+      <td>R1</td>
+      <td style="text-align: center">GO_IDLE_STATE</td>
+      <td style="text-align: right">resets the SD card</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>So for this I did following things:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// As  mentioned in command register desciption in [SD host spec ver 1.00
+command = SDHCI_RESPONSE_R1 | SDHCI_CMD_CRC_EN  | SDHCI_CMD_INDEX_EN | SDHCI_CMD_0;
+</code></pre></div></div>
+
+<p>But no response came up. Timeout error indicates that there should be some clocking issue. But I think 400kHZ is the ideal clock at which card should respond. For that again we read base clock value from the capabilities register and divided with the factor so that we get a value nearest to 400kHZ.</p>
+
+<p>For this week I will be writing documentation and submitting the final evaluation. Feel free to review the code and share your views regarding the project :).</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Hello everyone, We are in the final week of GSoC’18 program and yesterday our code has successfully merged. It got crashed in the first build because we thought we would add the code but disable the build currently but we didn’t test the case when device manager will try to find the driver in a certain directory which we hardcoded at the time of loading the module. So we just changed it to an OR condition where it won’t be able to find the driver binary but still be able to boot the OS in any case.]]></summary></entry><entry><title type="html">Week #10</title><link href="http://localhost:4000/haiku/2018/07/31/gsoc_2018_sdhci_mmc_driver-_week_10.html" rel="alternate" type="text/html" title="Week #10" /><published>2018-07-31T23:58:43+05:30</published><updated>2018-07-31T23:58:43+05:30</updated><id>http://localhost:4000/haiku/2018/07/31/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_10</id><content type="html" xml:base="http://localhost:4000/haiku/2018/07/31/gsoc_2018_sdhci_mmc_driver-_week_10.html"><![CDATA[<p>Hello everyone, this week we have tried to get the response from the command but unfortunately, it didn’t work out. In the meantime, I have submitted the code for review and PulkoMandy had already reviewed once. I have been going through Linux patches<a href="https://patchwork.ozlabs.org/patch/279434/">1</a> <a href="https://patchwork.kernel.org/patch/3181031/">2</a> which are related to the issue we are currently facing.</p>
+
+<p>I have done following improvements in the code</p>
+
+<ul>
+  <li>
+    <p>Disabled adding drivers to the kernel, removed statements from</p>
+
+    <p>build/jam/images/definitions/minimum
+   build/jam/packages/Haiku</p>
+  </li>
+  <li>Removed whitespaces</li>
+  <li>Maintained less than 80 characters in each line</li>
+  <li>Disabled the code which was not required by #if 0 but can be used in future</li>
+  <li>Added few error logs</li>
+</ul>
+
+<p>We have also noticed an alteration in the 16-bit registers while binding it together with a 32-bit register(Interrupt status/signal regs). We also did a bit of wrong padding while mapping the register set, hence interrupt handler is also working fine. Also, being confident that the register set has been altered, therefore we are receiving the following errors.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>command timeout error
+command completer error interrupt 
+</code></pre></div></div>
+
+<p>There hasn’t been much progress in this week, apologies for the lag in the development of the project. Feel free to review the <a href="https://review.haiku-os.org/#/c/haiku/+/318/">code</a>. People are welcomed to compile and run the code and report any issue or can always ask for directions for running the driver in the system. Though driver will not be able to provide any user functionalities still it is always good to know the stability of code through different systems.</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Hello everyone, this week we have tried to get the response from the command but unfortunately, it didn’t work out. In the meantime, I have submitted the code for review and PulkoMandy had already reviewed once. I have been going through Linux patches1 2 which are related to the issue we are currently facing.]]></summary></entry><entry><title type="html">Week #9</title><link href="http://localhost:4000/haiku/2018/07/24/gsoc_2018_sdhci_mmc_driver-_week_9.html" rel="alternate" type="text/html" title="Week #9" /><published>2018-07-24T19:03:36+05:30</published><updated>2018-07-24T19:03:36+05:30</updated><id>http://localhost:4000/haiku/2018/07/24/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_9</id><content type="html" xml:base="http://localhost:4000/haiku/2018/07/24/gsoc_2018_sdhci_mmc_driver-_week_9.html"><![CDATA[<p>Hello everyone, here we are with another update on the project. Last week we have started with installing
+interrupt handler, so basically we will pass the address of a function while installing the interrupt handler, later when an interrupt occurs that function will be called.</p>
+
+<p>We opted for pin-based interrupt handler, which is one of the levels of interrupt handling. I have explained them in previous blogs.</p>
+
+<h3 id="instructions-to-install-an-interrupt-handler">Instructions to install an interrupt handler:</h3>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bus-&gt;irq = pciInfo-&gt;u.h0.interrupt_line; // driver needs to assign interrupt line to itself
+
+if (bus-&gt;irq == 0 || bus-&gt;irq == 0xff){ // checking if right interrupt value is assigned
+    return B_ERROR 
+
+status = install_io_interrupt_handler(bus-&gt;irq, handler_function_name, bus, 0);
+
+if(status != B_OK) // check if interrupt handler is successfully installed
+    return B_ERROR
+</code></pre></div></div>
+
+<p>Currently interrupt handler function can handle following interrupts(Referred: <a href="https://github.com/freebsd/freebsd/blob/master/sys/dev/sdhci/sdhci.c#L2162">FreeBSD code</a>)</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    // card presence interrupt
+    // command interrupt
+    // bus power interrupt
+else
+    // unexpected interrupt
+</code></pre></div></div>
+
+<p>So with this, we were successful in setting up the interrupt and it’s working pretty well as expected. Now the upcoming task is to issue the command to the card and read the response which is again giving timeout error. We have installed a DELAY() function for giving delays but still didn’t work.</p>
+
+<p>We were trying to issue CMD0 which should reset the card registers and give the response at R1. There’s also an error interrupt recovery sequence mentioned in spec version 4.20 but again to implement that we need to issue few commands.</p>
+
+<p>Next, we will be focusing on cleaning the code and getting it reviewed. After that, we will work on getting the responses for the corresponding commands.</p>
+
+<p>My guess! it will most likely to be clocking issue and frequency config. I will try to dig more into it :).</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Hello everyone, here we are with another update on the project. Last week we have started with installing interrupt handler, so basically we will pass the address of a function while installing the interrupt handler, later when an interrupt occurs that function will be called.]]></summary></entry><entry><title type="html">Third Phase Outline</title><link href="http://localhost:4000/haiku/2018/07/12/gsoc_2018_sdhci_mmc_driver-_third_phase_plan.html" rel="alternate" type="text/html" title="Third Phase Outline" /><published>2018-07-12T10:52:58+05:30</published><updated>2018-07-12T10:52:58+05:30</updated><id>http://localhost:4000/haiku/2018/07/12/%5Bgsoc_2018_sdhci_mmc_driver%5D_third_phase_plan</id><content type="html" xml:base="http://localhost:4000/haiku/2018/07/12/gsoc_2018_sdhci_mmc_driver-_third_phase_plan.html"><![CDATA[<p>So here we are in the final week of the second phase of this project. I would like to address what was planned for this phase and what we have achieved and will proceed to plan for the third phase.</p>
+
+<h2 id="second-phase-highlights">Second Phase Highlights</h2>
+
+<ul>
+  <li>We were successful in register mapping through MMUIO.</li>
+  <li>We have created a bus manager but not linked with controller ATM.</li>
+  <li>Interrupts have not been implemented but also not required in this phase.</li>
+  <li>Separating controller(device) and MMC bus(child device) but in a single module is still needed to be done.</li>
+  <li>mmc_disk being running multiple times is fixed now.</li>
+</ul>
+
+<h2 id="plan-for-the-third-phase">Plan for the Third Phase</h2>
+
+<p>I have already addressed the issue of reading OCR value in my most recent blog post. The issue was, even after setting up the command register we were not able to get the response from response register after reset. When we enabled timout error status, it automatically turned the error bit to 1 and which says that it failed to get any response in 64 cycles of SDCLK. It will the foremost task 
+and will be reading the response of commands. To proceed further in sequences it’s necessary that we should get the responses of the commands.</p>
+
+<h3 id="sequences">Sequences</h3>
+
+<h4 id="bus-power-control-sequence">Bus Power Control sequence</h4>
+
+<p>Currently working on to get the OCR response. For this, we need to go through modes like SD and SPI also asserting CS signal i.e host to card chip select signal which is already been set in transfer mode register.</p>
+
+<p>SD memory card SPI channel consists of four signals</p>
+
+<ol>
+  <li>CS: host to card chip select signal</li>
+  <li>CLK: host to card clock signal</li>
+  <li>DataIn: Host to card data signal</li>
+  <li>DataOut: card to host data signal</li>
+</ol>
+
+<p>This will also take us into distinguishing between SD memory card and MultiMedia card, that can be done with CMD1 and ACMD41(command is CMD5) as mentioned in <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=PartE1_SDIO_Simplified_Specification_Ver1.00.jpg&amp;f=PartE1_SDIO_Simplified_Specification_Ver1.00.pdf&amp;e=EN_E1100">SDIO spec</a>. Also qemu is by default getting a response which I was not able to produce(after reset). Currently, we are facing response timeout error which is set for 64 SDCLK cycles. For this, we will be executing Timeout Setting on DAT Line sequence. DAT bus Line is actually the physicall data line on which data is being transfered, turning it low and high determines the start bits and end bits respectively. The payload for block oriented data transfer is protected by 1 or 4 bits CRC check sum.</p>
+
+<h4 id="changing-bus-width">Changing Bus Width</h4>
+
+<p>Again reading the response is a must for proceeding for this sequence. Distinguishing between SD memory card and the MultiMedia card is also a key element in this sequence.</p>
+
+<h4 id="sd-transaction-generation">SD Transaction Generation</h4>
+
+<p>To proceed further we should be through with <a href="https://www.sdcard.org/downloads/pls/click.php?p=Part1_Physical_Layer_Simplified_Specification_Ver1.01.jpg&amp;f=Part1_Physical_Layer_Simplified_Specification_Ver1.01.pdf&amp;e=EN_P1101">SD memory card spec</a> and <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=PartE1_SDIO_Simplified_Specification_Ver1.00.jpg&amp;f=PartE1_SDIO_Simplified_Specification_Ver1.00.pdf&amp;e=EN_E1100">SDIO spec</a>. This will be basically implemented in mmc_disk or we can say that the job of data transfer will be managed by MMC disk driver. For now, virtio disk driver is using IOScheduler and DMA resource class(device_manager/..) I am not sure that how much of that we can use of how similar DMA transfer and Polling is similar to SD transaction.</p>
+
+<h5 id="transaction-control-without-data-transfer-using-dat-line">Transaction Control without Data Transfer Using DAT Line</h5>
+
+<ul>
+  <li><strong>Sequence for the issue of SD command</strong></li>
+  <li><strong>Sequence for complete command</strong></li>
+</ul>
+
+<h5 id="transaction-with-data-transfer-using-dat-line">Transaction with Data Transfer Using DAT Line</h5>
+
+<p>SD transfers are classified into three kinds</p>
+
+<ol>
+  <li>Single Block Transfer</li>
+  <li>Multiple Block Transfer</li>
+  <li>Infinite Block Transfer</li>
+</ol>
+
+<p>There are implemented by two different methods</p>
+
+<ul>
+  <li><strong>Not using DMA</strong></li>
+  <li><strong>Using DMA</strong></li>
+</ul>
+
+<p>That ‘ll be all the milestones which will be implemented in the third phase, hopefully :). The driver will be favorable to SD memory card rather MultiMedia card. MultiMedia support can be added later.I think the only big obstacle, we need pass through is reading the response for a particular command. Rest all things and implementation of sequences will go smooth. It is going to be a big challenge to implement these 
+within 3 weeks of time but still if some delay comes up then I would like to extend the internship period and at least complete third phase plan.</p>
+
+<p>Thanks for reading :)</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[So here we are in the final week of the second phase of this project. I would like to address what was planned for this phase and what we have achieved and will proceed to plan for the third phase.]]></summary></entry><entry><title type="html">Week #8</title><link href="http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html" rel="alternate" type="text/html" title="Week #8" /><published>2018-07-09T20:09:54+05:30</published><updated>2018-07-09T20:09:54+05:30</updated><id>http://localhost:4000/haiku/2018/07/09/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_8</id><content type="html" xml:base="http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html"><![CDATA[<p>Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=Part1_Physical_Layer_Simplified_Specification_Ver1.10.jpg&amp;f=Part1_Physical_Layer_Simplified_Specification_Ver1.10.pdf&amp;e=EN_P1110">SD Memory Card PhysicalLayer Specification</a>. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config</p>
+
+<ol>
+  <li>SPI mode</li>
+  <li>Response register-&gt;R3</li>
+  <li>Abbrevation-&gt;READ_OCR</li>
+  <li>Description-&gt;Reads the OCR register of a card.</li>
+</ol>
+
+<p>From the details, I have set the command index bits to 58, response type to 10 and rest all bits are set to 0 after the RESET_ALL command. After setting up the command register, we read the R3 register i.e response registers and it was showing no response(0). For the more specific step of setting up command bits, there’s a flow chart on the page: 97 figure: 39 but still I was not sure about the SPI mode operation and for that, we enabled 4-bit mode in host control register and still it didn’t work.</p>
+
+<p>Keeping that aside, as suggested by @phoudoin I tried setting up the bus manager and creating the SDHCIBusController object toperform the sequences. For setting up the bus manager I have referred virtio bus manager and created a mmc_module.cpp forcreating a module, I have described a bit about the module in my previous blogs. Like any other module I need minimum functions, in this case, it was</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mmc_bus_init() // creates an object of the class(MMCBus) and binds with a pointer *_device
+mmc_bus_uninit() // delete the object created by init()  This module also has a device like any other module which has the function
+
+mmc_bus_added_device() // confirms the device and register the node You might have notices which creating the object with have used the operator new[], it actually returns a null pointer instead of a throwing an exception.
+</code></pre></div></div>
+
+<p>For defining the class we have created a file mmc_bus.cpp which currently only have few data members and member functions, it’s pretty much functioning. Now I need to bind the sequence functions like set_clock(0, reset() to the class. We have defined a pointer of structure sdhci_mmc_bus_interface which is defined in sdhci_pci.h, which will do the trick and can access the function pointers. For now, it’s like bus_manager if not attached to the main driver code. That leaves with our OCR issue incomplete. I will try to complete the power sequence and attach the bus manager to main driver code.</p>
+
+<p>I have pushed the code to <a href="https://review.haiku-os.org/#/c/haiku/+/318/">gerrit</a>, feel free to review it. I will improving the coding style more by this week :).</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in SD Memory Card PhysicalLayer Specification. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config]]></summary></entry><entry><title type="html">Week #7</title><link href="http://localhost:4000/haiku/2018/07/03/gsoc_2018_sdhci_mmc_driver-_week_7.html" rel="alternate" type="text/html" title="Week #7" /><published>2018-07-03T18:27:58+05:30</published><updated>2018-07-03T18:27:58+05:30</updated><id>http://localhost:4000/haiku/2018/07/03/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_7</id><content type="html" xml:base="http://localhost:4000/haiku/2018/07/03/gsoc_2018_sdhci_mmc_driver-_week_7.html"><![CDATA[<p>Finally, we got the register mapping work and they are responsive, we have tested by enabling software reset bit and it has all the default values of registers which are set by Qemu except the present state register and capabilities register. These both should be left unaffected as mentioned in the <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=PartA2_SD_Host_Controller_Simplified_Specification_Ver1.00.jpg&amp;f=PartA2_SD_Host_Controller_Simplified_Specification_Ver1.00.pdf&amp;e=EN_A2100">spec</a>. We are following SD Host specification version 1.00 for now, which also doesn’t support UHS but Qemu seems to be supporting it 
+well.</p>
+
+<p>The register set of the SD controller has registers of sizes 8/16/32 bits and that also complicates the accessing of register with offsets(for eg: <em>(regs(</em>base address*) + offset)). Register mapping seemed to be changing with the data type of pointer which points to the register set(<a href="https://github.com/krish-iyer/haiku/blob/9e22b58f38e801ddec397c0e643863a46d0d2397/src/add-ons/kernel/busses/mmc/sdhci_pci.cpp#L167">regs</a>). So we thought of declaring a structure as follows</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>struct somename
+{
+    int data_memeber_1
+    ------
+    ------
+    ------
+}__attribute__((packed)) Now there are two things to be addressed when you are dealing with declaring a structure, one is data alignment and another is data structure padding. Data alignment is way your data members are aligned in the memory according to the size of the data type for corresponding data member. To access the data efficiently it may be required to insert some zero bytes([example](https://sites.google.com/site/eganya/Home/links/gcc---packed-structures)), this is called data structure padding. To disable or in cases when zero bytes creates trouble, here it is the offset(we can't afford to give any extra bytes between offsets),  we use 
+
+__attribute__((packed))  Hence we got all the register values mapped to their corresponding register data members. It confirmed the card presence too. After this, we have implemented few functions which are as follows
+ 
+static void sdhci_register_dump(uint8_t slot, struct registers* _regs)    
+static void sdhci_reset(volatile uint32_t* present_state, volatile uint16_t* clock_control, volatile uint8_t* power_control, volatile uint8_t* software_reset)
+static void sdhci_set_clock(volatile uint32_t* capabilities, volatile uint16_t* clock_control)
+static void sdhci_set_power(volatile uint32_t* capabilities, volatile uint32_t* present_state, volatile uint8_t* power_control)
+static void sdhci_stop_clock(volatile uint16_t* clock_control) We feel that for now things can proceed without interrupt handling. Actually there are three levels of interrupt  available on  x86. 1. Pin-based out of band signaling. This uses an extra pin to sending the interrupt 2. MSI(Message signaled interrupt), these are in band signaling which sends some special messages to send interrupts. 3. MSI-X is some advance form of MSI supporting large number of interrupts
+</code></pre></div></div>
+
+<p>So there’s a lot on the later part for us to figure out on interrupt handling because not on all cases driver can watch at a particular register and inform the driver, this won’t allow OS to boot(already there’s a delay due to loops in the driver. So this job or receiving the interrupts and informing the driver about should be done by the CPU, hence we should install interrupt handler.</p>
+
+<p>For example in the very first sequence flow chart in the spec is about SD card detection, so suppose a card is being inserted and OS has been booted. So while driver must have been loaded and have detected the SD card(present state register). Now, SD card is removed but still, the driver won’t know about it even if register value gets changed. If you think that we should constantly check that bit with a while loop in the driver then it won’t let the OS boot until it comes out of the loop and loads the driver module.</p>
+
+<p>Hence, this job can only be done with the help of interrupt handler. I have pushed the code to <a href="https://review.haiku-os.org/#/c/haiku/+/276/">gerrit</a>, feel free to review it and comment down if you have any ideas. Special thanks to  @PulkoMandy for helping me with the register mapping and coming out with the idea of structure packing :).</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Finally, we got the register mapping work and they are responsive, we have tested by enabling software reset bit and it has all the default values of registers which are set by Qemu except the present state register and capabilities register. These both should be left unaffected as mentioned in the spec. We are following SD Host specification version 1.00 for now, which also doesn’t support UHS but Qemu seems to be supporting it well.]]></summary></entry><entry><title type="html">Week #6</title><link href="http://localhost:4000/haiku/2018/06/26/gsoc_2018_sdhci_mmc_driver-_week_6.html" rel="alternate" type="text/html" title="Week #6" /><published>2018-06-26T15:04:41+05:30</published><updated>2018-06-26T15:04:41+05:30</updated><id>http://localhost:4000/haiku/2018/06/26/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_6</id><content type="html" xml:base="http://localhost:4000/haiku/2018/06/26/gsoc_2018_sdhci_mmc_driver-_week_6.html"><![CDATA[<p>Hello everyone! Here’s the update of week #6, in the last update we were not able to access the registers. When we tried mapping it, there were all zeros. so we knew there’s something wrong in  the way we were accessing the register and in between this we got to know that <a href="https://github.com/qemu/qemu/blob/bec9c64ef7be8063f1192608b83877bc5c9ea217/hw/sd/sdhci.c#L72">qemu emulation for sdhc hardware</a> only supports <a href="https://www.sdcard.org/jp/developers/overview/host_controller/simple_spec/Simplified_SD_Host_Controller_Spec.pdf">spec version 2</a> and 3 and the spec which we intended to implement was <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=PartA2_SD%20Host_Controller_Simplified_Specification_Ver4.20.jpg&amp;f=PartA2_SD%20Host_Controller_Simplified_Specification_Ver4.20.pdf&amp;e=EN_SSA2">4.2</a>.Later, we got to know that <a href="https://github.com/krish-iyer/haiku/blob/5abb958dec121d202e3f71450d41acff063d5393/src/add-ons/kernel/busses/mmc/sdhci_pci.cpp#L116">this</a></p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pcicmd &amp;= ~(PCI_command_memory | PCI_command_int_disable); was disabling PCI I/O decoding and ensuring that PCI_command_memory is set but it turns out that on haiku the PCI bus let the driver to decide whether what kind of support it need from the device. Which kinda should be automatic and restricted for a driver. Soon after commenting out the clearing command we got some value in the register mapping through MMUIO and that also confirmed that mapping of registers is working, that was a relief. My next objective was to detect the card some how by enabling few bits. So I thought it better and easy to use test registers without much complication. 
+</code></pre></div></div>
+
+<p>So I enabled <strong>card detect signal</strong> and <strong>card detect test level</strong> in <em>Host Control 1</em> and checked the bits in <em>Present state 
+register</em> and <em>Normal interrupt status register</em> (acc. to spec 4.2). Also, I have checked specification version 2 and was 
+similar. But this configuration didn’t worked and registers didn’t responded and it seems it’s not that easy, so better we 
+will try by enabling and polling interrupt registers.</p>
+
+<p>We also made few changes in the <a href="https://github.com/krish-iyer/haiku/commit/5abb958dec121d202e3f71450d41acff063d5393">code</a> and made it <strong>slot</strong> and <strong>BAR</strong> dependant, so each node(child device) will be registered at each slot and each alot will be having a base address which will be mentioned in BAR(first_bar_index + slot). Hence, there will distinct register mapping for each slot. And on the later part each slot will be hooked to something like /dev/mmc/.. by mmc_disk driver.</p>
+
+<p>We were trying to install the interrupt handler and tried to figure out which level of interrupt is supported by the hardware</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>if
+	get_msix_count() or get_msi_count() gives zero everytime and thus it means that we are left with pin-driven interrupt but there might be a possibility that we might have to enable msi in qemu. We still have to look into this.
+</code></pre></div></div>
+
+<p>In this I was also explored an interesting aspect which I haven’t looked into, thanks to PulkoMandy to bring it up. I have attached link to mail <a href="https://www.freelists.org/post/haiku-development/SDHCI-MMC-Driver-Trouble-in-Mapping-the-Registers,1">archive</a> and tried to explain. Please comment below if I have missed something or any different idea in which it could have been explained. Recently, there was also a <a href="https://github.com/qemu/qemu/commit/1e23b63f022ae79d7a5c535fe549127ad52d5ba6">commit</a> regarding register definition for sepc version 4.2 in qemu. Let’s see in this week if get card detection working.</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Hello everyone! Here’s the update of week #6, in the last update we were not able to access the registers. When we tried mapping it, there were all zeros. so we knew there’s something wrong in the way we were accessing the register and in between this we got to know that qemu emulation for sdhc hardware only supports spec version 2 and 3 and the spec which we intended to implement was 4.2.Later, we got to know that this pcicmd &amp;= ~(PCI_command_memory | PCI_command_int_disable); was disabling PCI I/O decoding and ensuring that PCI_command_memory is set but it turns out that on haiku the PCI bus let the driver to decide whether what kind of support it need from the device. Which kinda should be automatic and restricted for a driver. Soon after commenting out the clearing command we got some value in the register mapping through MMUIO and that also confirmed that mapping of registers is working, that was a relief. My next objective was to detect the card some how by enabling few bits. So I thought it better and easy to use test registers without much complication.]]></summary></entry></feed>

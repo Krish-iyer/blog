@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioWeek #10</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Week #10" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Hello everyone, this week we have tried to get the response from the command but unfortunately, it didn’t work out. In the meantime, I have submitted the code for review and PulkoMandy had already reviewed once. I have been going through Linux patches1 2 which are related to the issue we are currently facing." />
+<meta property="og:description" content="Hello everyone, this week we have tried to get the response from the command but unfortunately, it didn’t work out. In the meantime, I have submitted the code for review and PulkoMandy had already reviewed once. I have been going through Linux patches1 2 which are related to the issue we are currently facing." />
+<link rel="canonical" href="http://localhost:4000/haiku/2018/07/31/gsoc_2018_sdhci_mmc_driver-_week_10.html" />
+<meta property="og:url" content="http://localhost:4000/haiku/2018/07/31/gsoc_2018_sdhci_mmc_driver-_week_10.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-07-31T23:58:43+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Week #10" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-07-31T23:58:43+05:30","datePublished":"2018-07-31T23:58:43+05:30","description":"Hello everyone, this week we have tried to get the response from the command but unfortunately, it didn’t work out. In the meantime, I have submitted the code for review and PulkoMandy had already reviewed once. I have been going through Linux patches1 2 which are related to the issue we are currently facing.","headline":"Week #10","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/07/31/gsoc_2018_sdhci_mmc_driver-_week_10.html"},"url":"http://localhost:4000/haiku/2018/07/31/gsoc_2018_sdhci_mmc_driver-_week_10.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Week #10</h1></center>
+</ul>
+
+<p>Hello everyone, this week we have tried to get the response from the command but unfortunately, it didn’t work out. In the meantime, I have submitted the code for review and PulkoMandy had already reviewed once. I have been going through Linux patches<a href="https://patchwork.ozlabs.org/patch/279434/">1</a> <a href="https://patchwork.kernel.org/patch/3181031/">2</a> which are related to the issue we are currently facing.</p>
+
+<p>I have done following improvements in the code</p>
+
+<ul>
+  <li>
+    <p>Disabled adding drivers to the kernel, removed statements from</p>
+
+    <p>build/jam/images/definitions/minimum
+   build/jam/packages/Haiku</p>
+  </li>
+  <li>Removed whitespaces</li>
+  <li>Maintained less than 80 characters in each line</li>
+  <li>Disabled the code which was not required by #if 0 but can be used in future</li>
+  <li>Added few error logs</li>
+</ul>
+
+<p>We have also noticed an alteration in the 16-bit registers while binding it together with a 32-bit register(Interrupt status/signal regs). We also did a bit of wrong padding while mapping the register set, hence interrupt handler is also working fine. Also, being confident that the register set has been altered, therefore we are receiving the following errors.</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>command timeout error
+command completer error interrupt 
+</code></pre></div></div>
+
+<p>There hasn’t been much progress in this week, apologies for the lag in the development of the project. Feel free to review the <a href="https://review.haiku-os.org/#/c/haiku/+/318/">code</a>. People are welcomed to compile and run the code and report any issue or can always ask for directions for running the driver in the system. Though driver will not be able to provide any user functionalities still it is always good to know the stability of code through different systems.</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>

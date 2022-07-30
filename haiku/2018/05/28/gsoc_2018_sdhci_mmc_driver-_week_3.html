@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioWeek #3</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Week #3" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Sorry folks! for the delay in the updates. I was pretty much occupied by end term exams. After initial setup, we divided the our initial plan in following steps." />
+<meta property="og:description" content="Sorry folks! for the delay in the updates. I was pretty much occupied by end term exams. After initial setup, we divided the our initial plan in following steps." />
+<link rel="canonical" href="http://localhost:4000/haiku/2018/05/28/gsoc_2018_sdhci_mmc_driver-_week_3.html" />
+<meta property="og:url" content="http://localhost:4000/haiku/2018/05/28/gsoc_2018_sdhci_mmc_driver-_week_3.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-05-28T20:35:18+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Week #3" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-05-28T20:35:18+05:30","datePublished":"2018-05-28T20:35:18+05:30","description":"Sorry folks! for the delay in the updates. I was pretty much occupied by end term exams. After initial setup, we divided the our initial plan in following steps.","headline":"Week #3","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/05/28/gsoc_2018_sdhci_mmc_driver-_week_3.html"},"url":"http://localhost:4000/haiku/2018/05/28/gsoc_2018_sdhci_mmc_driver-_week_3.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Week #3</h1></center>
+</ul>
+
+<p>Sorry folks! for the delay in the updates. I was pretty much occupied by end term exams. After initial setup, we divided the our initial plan in following steps.</p>
+
+<ul>
+  <li>Discover PCI bus</li>
+  <li>Filter out SDHC device from the connected devices on the bus.</li>
+  <li>Register the device as the child node.</li>
+</ul>
+
+<p>As I was able to load the driver, it exited in between somewhere from the supports_device(). So I broke the conditions where it checks for the bus, device ID and vendor ID, in order to see where exactly it was not satisfying the condition. I also printed bus value, we got to know that the driver was not able to access PCI bus and it’s hidden by default. To enable it we need to mention the bus manager(<em>“mmc”:location://src add-ons/kernel/busses/mmc</em>) path in the device manager(<em>location://src/system/kernel/device_manager device_manager.cpp</em>) where few more busses’s paths were hardcoded.</p>
+
+<p>In between this we also did a little hack kinda thing. We knew that virtio can access PCI bus so we changed the driver module name(busses/virtio/sdhci_pci/driver_v1) and manually placed in ~/config/non-packaged/add-ons/kernel/busses/virtio. After which the supports_device() got access to PCI bus.</p>
+
+<p>I resumed the work on adding bus manager(mmc) path in device manager(). After making changes to kernel we need to update the image with the new kernel.</p>
+
+<p>From the host:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd haiku/generated.x86_64
+jam -q update -image kernel you can also do that in the haiku guest:
+
+cd haiku/generated.x86_64
+jam haiku.hpkg
+pkgman install haiku.hpkg
+</code></pre></div></div>
+
+<p>this will update the kernel but certainly, my system went out of cache memory and got stuck. So I updated from the host and it worked pretty well, you can confirm it by last created or updated date..</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ls -l /boot/system/kernel_x86_64
+</code></pre></div></div>
+
+<p>After updating the kernel we expected our bus manager to now be able to detect the PCI bus but it still didn’t happen. So I tried print debug messages from device manager checking for each condition in _GetNextDriverPath(), later I figure out it’s not accepting the condition for PCI_base_peripheral 0x08(defined in PCI.h) class.</p>
+
+<p>So, for now, I can interpret that the PCI class is not discoverable to device manager too.</p>
+
+<p>In between the printing debug messages from supports_device(), I crashed the OS due to printing some invalid values(<em>like: gDeviceManager-&gt;get_attr_uint16(parent, B_DEVICE_ID, &amp;deviceID, true)</em>). It will directly boot to kdebug log, I knew that I placed the binary in ~/config/../add-ons so I had to disable loading of drivers from that part.</p>
+
+<p>For recovery, I followed the following steps:</p>
+
+<ul>
+  <li>In order to boot into the boot menu, press and hold space bar or shift(space bar worked for me), you should be really fast in this. I took more than 40 mins to really get used to it.</li>
+  <li>Then go to safe mode and disable add-ons.</li>
+  <li>Come back to the main menu and click on “continue booting”.</li>
+</ul>
+
+<p>At last thanks to Driver1, korli, phoudoin, Pulko Mandy, Alex, axeld for helping me figuring out all of these problems :).</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>

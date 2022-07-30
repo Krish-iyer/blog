@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioProcess of Compiling a C-Code</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Process of Compiling a C-Code" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="We program to give a certain set of instructions to the computer but it’s tough and time-consuming to learn machine code and give instructions. So we have developed a high-level language which is converted into a low-level language(machine code) through certain tools and each tool is specific to the hardware which is going to understand the instructions. The tool to convert C code into machine code is called as compilers. For general purpose and compiling codes for Linux we use gcc and for AVR microcontrollers we use avr–gcc and PIC-microcontrollers we have pic-gcc." />
+<meta property="og:description" content="We program to give a certain set of instructions to the computer but it’s tough and time-consuming to learn machine code and give instructions. So we have developed a high-level language which is converted into a low-level language(machine code) through certain tools and each tool is specific to the hardware which is going to understand the instructions. The tool to convert C code into machine code is called as compilers. For general purpose and compiling codes for Linux we use gcc and for AVR microcontrollers we use avr–gcc and PIC-microcontrollers we have pic-gcc." />
+<link rel="canonical" href="http://localhost:4000/randombin/2017/10/20/Process-of-Compiling-a-C-Code.html" />
+<meta property="og:url" content="http://localhost:4000/randombin/2017/10/20/Process-of-Compiling-a-C-Code.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2017-10-20T10:51:47+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Process of Compiling a C-Code" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2017-10-20T10:51:47+05:30","datePublished":"2017-10-20T10:51:47+05:30","description":"We program to give a certain set of instructions to the computer but it’s tough and time-consuming to learn machine code and give instructions. So we have developed a high-level language which is converted into a low-level language(machine code) through certain tools and each tool is specific to the hardware which is going to understand the instructions. The tool to convert C code into machine code is called as compilers. For general purpose and compiling codes for Linux we use gcc and for AVR microcontrollers we use avr–gcc and PIC-microcontrollers we have pic-gcc.","headline":"Process of Compiling a C-Code","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/randombin/2017/10/20/Process-of-Compiling-a-C-Code.html"},"url":"http://localhost:4000/randombin/2017/10/20/Process-of-Compiling-a-C-Code.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Process of Compiling a C-Code</h1></center>
+</ul>
+
+<p>We program to give a certain set of instructions to the computer but it’s tough and time-consuming to learn machine code and give instructions. So we have developed a high-level language which is converted into a low-level language(machine code) through certain tools and each tool is specific to the hardware which is going to understand the instructions. The tool to convert C code into machine code is called as compilers. For general purpose and compiling codes for Linux we use gcc and for AVR microcontrollers we use avr–gcc and PIC-microcontrollers we have pic-gcc.</p>
+
+<p>So when you write a programme these tools run some processes which to convert it into machine code. When we compile our code, the compiler takes ion the header file and checks if the code is syntactically right or wrong and then it is converted into a intermediate language which is equal to assembly code and then through an assembler, it is converted into the machine code or the executable .hex file.</p>
+
+<p>The compiler has three parts:</p>
+
+<p>Preprocessor: It adds header file contents in our code. It replaces text substitution labels and macros with their original values and it also removes comments and white spaces from the programme.</p>
+
+<p>Parser: It creates tokens and makes sure that tokens are according to certain rules in C and it determines the actions must be taken by each expression and passes a list of instructions to the code generator.</p>
+
+<p>Code Generator: It takes the list of instructions and translates into device specific assembly language instructions. This part of the compiler is different for every microcontroller.</p>
+
+<p>Now the assembler converts the assembly code into machine code. After converting into the machine code the Linker talks with the hardware and knows that which part of the memory is allocated or free so that it can go back and replace variable and function names with the assigned memory.</p>
+
+<p>It is always recommended to code in assembly though it is tough because the converted C code is not that optimised. For an example- you can write 30 lines of C programme which can require only 4 lines of assembly code. So to speak french is France rather than english but yeah english will work too.</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>

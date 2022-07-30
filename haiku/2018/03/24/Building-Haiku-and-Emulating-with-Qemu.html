@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioBuilding Haiku and emulating with Qemu for Linux Distros</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Building Haiku and emulating with Qemu for Linux Distros" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Building Haiku from source code" />
+<meta property="og:description" content="Building Haiku from source code" />
+<link rel="canonical" href="http://localhost:4000/haiku/2018/03/24/Building-Haiku-and-Emulating-with-Qemu.html" />
+<meta property="og:url" content="http://localhost:4000/haiku/2018/03/24/Building-Haiku-and-Emulating-with-Qemu.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-03-24T10:51:47+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Building Haiku and emulating with Qemu for Linux Distros" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-03-24T10:51:47+05:30","datePublished":"2018-03-24T10:51:47+05:30","description":"Building Haiku from source code","headline":"Building Haiku and emulating with Qemu for Linux Distros","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/03/24/Building-Haiku-and-Emulating-with-Qemu.html"},"url":"http://localhost:4000/haiku/2018/03/24/Building-Haiku-and-Emulating-with-Qemu.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Building Haiku and emulating with Qemu for Linux Distros</h1></center>
+</ul>
+
+<h2 id="building-haiku-from-source-code">Building Haiku from source code</h2>
+
+<p>The following instructions are specifically to building haiku for x86_64 but you can always try building for other architectures too.</p>
+
+<h3 id="clonning-the-source-code">Clonning the source code</h3>
+
+<p>The official repository seems broken anyway didn’t work out for me so I clonned from github repo</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/haiku/haiku.git
+</code></pre></div></div>
+<p>Haiku uses some external tools to build from the source code</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/haiku/buildtools.git
+</code></pre></div></div>
+<p>make sure that both the clonned repositories are in the same directories</p>
+
+<h3 id="compiling-buildtools">Compiling buildtools</h3>
+
+<p>Create a directory where you are going to save the build image and related files</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mkdir generated.x86_64; cd generated.x86_64
+</code></pre></div></div>
+<p>For compiling</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>../configure --build-cross-tools x86_64 ../../buildtools
+</code></pre></div></div>
+<h3 id="building-the-image">Building the image</h3>
+
+<p>Before building the image you need to install some dependencies</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt-get install git nasm autoconf automake texinfo flex bison gawk build-essential unzip wget zip less zlib1g-dev libcurl4-openssl-dev genisoimage libtool
+</code></pre></div></div>
+<p>Aditional requirements for ARM</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt-get install u-boot-tools util-linux mtools device-tree-compiler bc
+</code></pre></div></div>
+<p>For creating nightly anyboot Haiku iso image</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>jam -q -j2 @nightly-anyboot
+</code></pre></div></div>
+<p>For creating nightly raw disk images</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>jam -q -j2 @nightly-raw
+</code></pre></div></div>
+<h3 id="error">Error</h3>
+
+<p>Now if you getting an error while building, specifically about haiku revision.
+Then,</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd $home/haiku/build/jam
+</code></pre></div></div>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat UserBuildConfig
+</code></pre></div></div>
+<p>Now copy hrexxxxx, and go to haiku/generated.x86_64/build</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cd $home/haiku/generated.x86_64/build
+</code></pre></div></div>
+<p>Then created and write into the file</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>echo -n "hrevxxxxx" &gt; haiku-revision
+</code></pre></div></div>
+<p>Your error will be fixed</p>
+<h2 id="emulation-with-qemu">Emulation with Qemu</h2>
+
+<h3 id="installing-qemu">Installing Qemu</h3>
+
+<p>Qemu is a software in which you can emulate various hardware and on top of that you can run OS in vitual enviornment</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo apt-get install qemu
+</code></pre></div></div>
+<h3 id="booting-os-in-virtual-drive">Booting OS in virtual drive</h3>
+
+<p>Now create an virtual harddrive in which you are going to boot the OS</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>qemu-img create haiku-vm.img 10G
+</code></pre></div></div>
+<p>Now boot the OS in the virtual drive</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo qemu-system-x86_64 -boot d -cdrom haiku/generated.x86_64/haiku-nightly-anyboot.iso -m 512 -hda haiku-vm.img
+</code></pre></div></div>
+<p>Now you can simply run the virtual drive</p>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo qemu-system-x86_64 haiku-vm.img
+</code></pre></div></div>
+
+<p>If you have any issues with building and emulation, feel free to comment :)</p>
+
+<p>Hope this helps!</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>

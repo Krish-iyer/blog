@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioIntroduction to ARM Assembly and dav1d</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Introduction to ARM Assembly and dav1d" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="General Assembly The first thing to know about the assembly is, it’s very much architecture dependant so for every different architecture there’s a completely different story. Secondly, it’s hard to get but that makes it more interesting." />
+<meta property="og:description" content="General Assembly The first thing to know about the assembly is, it’s very much architecture dependant so for every different architecture there’s a completely different story. Secondly, it’s hard to get but that makes it more interesting." />
+<link rel="canonical" href="http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d.html" />
+<meta property="og:url" content="http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-06-04T17:02:45+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Introduction to ARM Assembly and dav1d" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2019-06-04T17:02:45+05:30","datePublished":"2019-06-04T17:02:45+05:30","description":"General Assembly The first thing to know about the assembly is, it’s very much architecture dependant so for every different architecture there’s a completely different story. Secondly, it’s hard to get but that makes it more interesting.","headline":"Introduction to ARM Assembly and dav1d","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d.html"},"url":"http://localhost:4000/dav1d/2019/06/04/introduction-to-assembly-and-dav1d.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Introduction to ARM Assembly and dav1d</h1></center>
+</ul>
+
+<h2 id="general-assembly">General Assembly</h2>
+<p>The first thing to know about the assembly is, it’s very much architecture dependant so for every different architecture there’s a completely different story. Secondly, it’s hard to get but that makes it more interesting.</p>
+
+<p>So before stepping into ARM assembly, I have written assembly programs and studied architecture in detail for mid-range micro-controllers. Also, I have done bit study for TMS320C6000 and TMS320F28027, they are like DSP processors so data lines and processor units are bit different there.</p>
+
+<h2 id="why-assembly">Why Assembly</h2>
+
+<p>Besides the fact that it makes you feel more closer to the hardware and you have more control over things like processor, co-processor, peripherals etc, it is also very efficient, so mostly you have seen assembly codes for small memory devices with comparatively low processing power. The best example would be <a href="https://kolibrios.org/en/">Kolibri OS</a> which is forked from <a href="http://menuetos.net/">Manuet OS</a> repo.</p>
+
+<p>It’s ok if you explain French-speaking person in English but communicating in French would make things straight forward and wouldn’t require much effort to understand on both the sides.</p>
+
+<h2 id="how-to-get-started-with-arm-assembly">How to get started with ARM Assembly</h2>
+
+<p>This <a href="https://thinkingeek.com/arm-assembler-raspberry-pi/">blog</a> will get you to hang for a start, don’t get afraid if you don’t follow anything with first few blog posts, later it’s all gonna make sense. Follow through the exercises and important part to focus would be Matrix Multiply and SIMD ones. Also, Roger will clear all your doubts, there might be some delay but it would be worth the patience.</p>
+
+<p>Now arm assembly for ARMv7 and ARMv8 has some differences with the instruction, not to forget that they are 32bit and 64bit processor respectively, that might change the whole perspective of code implementation.</p>
+
+<h2 id="dav1d-neon-optimization">dav1d NEON Optimization</h2>
+
+<p><a href="https://code.videolan.org/videolan/dav1d">dav1d</a> is an av1 decoder more about dav1d you can read from <a href="http://www.jbkempf.com/blog/post/2018/Introducing-dav1d">j-b’s blog</a>. In order to achieve faster execution we need to optimize the code and also use some co-processor’s capabilities to make it much more faster, so here comes NEON into play, it’s built on co-processor 10 and 11(IIRC). So with this one, we get access to vector registers and we can execute single instruction on multiple data(SIMD).</p>
+
+<p>I will share some of the benchmarks in upcoming blog posts which compares C implementation vs Assembly implementation.</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>

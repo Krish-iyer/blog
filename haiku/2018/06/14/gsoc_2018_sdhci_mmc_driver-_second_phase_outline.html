@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-167285649-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-167285649-1');
+</script>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>krish-iyer.github.ioSecond Phase Outline</title><!-- Begin Jekyll SEO tag v2.8.0 -->
+<meta name="generator" content="Jekyll v3.8.7" />
+<meta property="og:title" content="Second Phase Outline" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Hey, folks! So we are at the end of first phase of the project and I had expected that I would be able to implement PIO but it seems that I have lagged a bit. Till now we have got our controller driver setting up the mmc bus and mmc disk driver to publish a slot. To implement PIO before DMA, also requires register mapping which we are currently working on. We tried it though but didn’t turn out well." />
+<meta property="og:description" content="Hey, folks! So we are at the end of first phase of the project and I had expected that I would be able to implement PIO but it seems that I have lagged a bit. Till now we have got our controller driver setting up the mmc bus and mmc disk driver to publish a slot. To implement PIO before DMA, also requires register mapping which we are currently working on. We tried it though but didn’t turn out well." />
+<link rel="canonical" href="http://localhost:4000/haiku/2018/06/14/gsoc_2018_sdhci_mmc_driver-_second_phase_outline.html" />
+<meta property="og:url" content="http://localhost:4000/haiku/2018/06/14/gsoc_2018_sdhci_mmc_driver-_second_phase_outline.html" />
+<meta property="og:site_name" content="krish-iyer.github.io" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-06-14T11:51:57+05:30" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Second Phase Outline" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-06-14T11:51:57+05:30","datePublished":"2018-06-14T11:51:57+05:30","description":"Hey, folks! So we are at the end of first phase of the project and I had expected that I would be able to implement PIO but it seems that I have lagged a bit. Till now we have got our controller driver setting up the mmc bus and mmc disk driver to publish a slot. To implement PIO before DMA, also requires register mapping which we are currently working on. We tried it though but didn’t turn out well.","headline":"Second Phase Outline","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/06/14/gsoc_2018_sdhci_mmc_driver-_second_phase_outline.html"},"url":"http://localhost:4000/haiku/2018/06/14/gsoc_2018_sdhci_mmc_driver-_second_phase_outline.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
+<body>
+    <div class="container"><header>
+  <div class="menu">
+    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+  </div>
+</header>
+<main>
+      <ul>
+    <center><h1>Second Phase Outline</h1></center>
+</ul>
+
+<p>Hey, folks! So we are at the end of first phase of the project and I had expected that I would be able to implement PIO but it seems that I have lagged a bit. Till now we have got our controller driver setting up the mmc bus and mmc disk driver to publish a slot. To implement PIO before DMA, also requires register mapping which we are currently working on. We tried it though but didn’t turn out well.</p>
+
+<p>For second phase first and the foremost task, also on which I am currently working is to check whether the mapped registers(<a href="https://github.com/krish-iyer/haiku/blob/ed7af1a07453e98fba370eb0a0a01eb4bb3cc6a1/src/add-ons/kernel/busses/mmc/sdhci_pci.cpp#L107">MMIO</a>) or accessing the registers through read/write_io_(x) is really working. Once it’s working then we will prefer mapping through MMIO and we can set up the register values and follow the specification.</p>
+
+<p>Setting up the DMA will again be a challenging task and also it seems that it will consume a lot of time but I am haven’t looked much deeper into the <a href="https://svnweb.freebsd.org/base/head/sys/dev/sdhci/sdhci.c?revision=327924&amp;view=markup#l719">code</a>.</p>
+
+<p>MMC disk story will be awaited till we really have something to hook into the published slot(/dev/disk/mmc/..). Later in this, operations on block will be implemented like block capacity, io scheduling for read and write etc</p>
+
+<p>Bus manager will come into picture when interrupts and data transfer will be setted up and only thing will be left i.e created an instance for particular job to be get it done and return back.</p>
+
+<p>Still there are two things more to figure out, one is controller and bus(mmc) separation(currently both in sdhci_pci.cpp), like just into two file but a single module and another one is, figuring out the reason behind mmc disk being run multiple times.</p>
+
+<p>In second phase we will be mostly working on the controller and later I hope we will finish up with io scheduling in mmc disk and class for creating instance, in bus manager.</p>
+
+<p>I will also be referring FreeBSD’s driver code. I will read and try to understand how to they have implemented register mapping. Also currently there are not separate functions for mapping and other operation, once we get this working we will add these to the controller interface structure.</p>
+
+<p>Thanks to all the developers who were part of this project and helping in every way possible. I am looking forward to see this driver working well for Haiku :).</p>
+
+
+    </main><footer>
+  
+</footer>
+</div>
+  </body>
+</html>
