@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>{{ site.title }}{{ page.title }}</title>
   {%- seo title=false -%}
-
+  {% include mathjax.html %}
   {%- if site.style == 'light' -%}
     <link rel="stylesheet" type="text/css" href="{{ "/assets/main-light.css" | relative_url }}">
   {%- else -%}
