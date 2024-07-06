@@ -372,12 +372,12 @@ pre {
 
 /* Name.Entity */
 .highlight .ne {
-  color: #990000;
+  color: #000000;
   font-weight: bold; }
 
 /* Name.Exception */
 .highlight .nf {
-  color: #990000;
+  color: #000000;
   font-weight: bold; }
 
 /* Name.Function */
