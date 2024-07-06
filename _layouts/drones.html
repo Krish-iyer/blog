@@ -10,7 +10,7 @@ layout: projects
   	{% for category in site.categories %}
   <ul>
     {% for post in category[1] %}
-    	{% if category[0] == 'drodo' %}
+    	{% if category[0] == 'drones' %}
       <li>{%- assign date_format = "%Y-%m-%d" -%}
       [ {{ post.date | date: date_format }} ] <a href="{{ post.url | relative_url }}">{{ post.title | escape }}</a></li>
     	{% endif %}
