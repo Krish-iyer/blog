@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "GSoC'19 dav1d ARM NEON Optimization final evaluation report"
+title:  "GSoC'19 - dav1d ARM NEON Optimization"
 date:   2019-08-19 12:32:45 +0100
 categories: [dav1d]
 ---
@@ -28,7 +28,7 @@ So here we come to an end of my GSoC'19 project under VideoLAN.
 8. [From AARCH32 to AARCH64](#From-AARCH32-to-AARCH64)
 9. [List of Commits](#List-of-Commits)
 10. [What's Left out!](#What's-Left-out)
-11. [Final Note and Things I learnt](#Final-Note-and-Things-I-learnt) 
+11. [Final Note and Things I learnt](#Final-Note-and-Things-I-learnt)
 
 ## <a name="Project-Overview"></a> Project Overview
 The project dealt with analysing various functions implemented in C language and then implement same in ARM assembly using SIMD architecture for both 32 and 64 bit processors. This will enhance efficiency in terms of both execution speed and binary size. There was performance testing involved after the function was implemented in assembly by using counter registers which helped in benchmarking the number of instruction cycles a function gets executed. Benchmarking was done for improving the production quality of dav1d across ARMv8 and ARMv7 devices.
@@ -108,7 +108,7 @@ Description of directories and files
 
 
 ## <a name="Analysing-C-function"></a> Analysing C function
-Now we are all done with setting up the development environment and understanding directory structure. So now we have to analyse the functions implemented in C language and implement the same in ARM assembly using NEON registers also compare the performance. We will also try to optimize it further if there's room for that. We started first with blend/blend_v/blend_h functions. AFAIK, I think these functions belongs to motion compensation and hence located in the 
+Now we are all done with setting up the development environment and understanding directory structure. So now we have to analyse the functions implemented in C language and implement the same in ARM assembly using NEON registers also compare the performance. We will also try to optimize it further if there's room for that. We started first with blend/blend_v/blend_h functions. AFAIK, I think these functions belongs to motion compensation and hence located in the
 
 ```
 src/mc_tmpl.c
@@ -117,7 +117,7 @@ and here's blend function
 
 ```
 #define blend_px(a, b, m) (((a * (64 - m) + b * m) + 32) >> 6)
-static void blend_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp, 
+static void blend_c(pixel *dst, const ptrdiff_t dst_stride, const pixel *tmp,
                         const int w, int h, const uint8_t *mask)
 {
     do {
@@ -134,11 +134,11 @@ So as it's very clear that there are two loops, the inner loop is calling blend_
 
 ```
 (((dst * (64 - mask) + tmp * mask) + 32) >> 6).
-``` 
+```
 
 There are a total of 5 parameter which has been passed to the function. The final expression would be like.
 ```
-dst = (((dst * (64 - mask) + tmp * mask) + 32) >> 6). 
+dst = (((dst * (64 - mask) + tmp * mask) + 32) >> 6).
 ```
 
 One can imagine 2-D matrix where the inner loop is accessing the elements of a specific row and outer loop is iterating each row specific for each parameter(*dst, tmp and mask*). After operating on all the elements of a row, the leap to the next address of the row is done by following exp.
@@ -159,8 +159,8 @@ We will further look into the C function, while writing assembly code but these 
 ## <a name="SIMD:-The-Idea"></a> SIMD: The Idea
 
 So to understand SIMD(single instruction multiple data) if you don't already know about it or didn't go through my previous blogs. The advantage over common assembly is we are going to fetch multiple data, keeping it in single register and do the operation with a single instruction.
- 
-So, for example, you have two 128bit registers, normally if you try to store any number in that register, it will be represented in 128 binary and then stored. For example, if you want to store 2 in 128bit register then register value will be 126 leading zeroes and 10 in the end. In case of SIMD you can divide the whole register into even parts so it can be used to keep multiple values like keeping 2 and 4 in the same register rather than using two different registers. Now you have a maximum of 128 bit register so either you can accommodate 16 8bit or 8 16bit or 4 32 bit or 2 64 bit data on either of the registers. 
+
+So, for example, you have two 128bit registers, normally if you try to store any number in that register, it will be represented in 128 binary and then stored. For example, if you want to store 2 in 128bit register then register value will be 126 leading zeroes and 10 in the end. In case of SIMD you can divide the whole register into even parts so it can be used to keep multiple values like keeping 2 and 4 in the same register rather than using two different registers. Now you have a maximum of 128 bit register so either you can accommodate 16 8bit or 8 16bit or 4 32 bit or 2 64 bit data on either of the registers.
 
 ### <a name="Instructions-in-SIMD"></a> Instructions in SIMD
 
@@ -171,7 +171,7 @@ int a[4] = {1, 2, 3, 4};    // first array
 int b[4] = {5, 6, 7, 8};    // second array
 int c[4];                   // elements to be store after operation
 ```
-so what one would do is 
+so what one would do is
 ```
 for(int i = 0 ; i<4; i++)
     c[i] = a[i] + b[i];
@@ -181,7 +181,7 @@ assembly
 loop:
     ldr     r2, [r0]!   // r0 -> address of a
     ldr     r3, [r1]!   // r1 -> address of b
-    add     r4, r2, r3  // adding and storing into another register 
+    add     r4, r2, r3  // adding and storing into another register
     str     r4, [r5]!   // r5 -> address of c
     subs    r6, r6, #1  // decrementing (intiially value of r6 is 4)
     bgt     loop        // if greater than zero then loop back
@@ -199,7 +199,7 @@ SIMD:
 Hence we got rid of the inner loop and iterating through each element. That's the advantage of SIMD over normal assembly.
 
 Now if you haven't noticed, elements of a and b were contiguously arranged and hence we were able to load it into a single register. So specific for widths of the data or the data about which we are sure that they would be contiguously arranged in the memory like an array, we have different implementations, it helps us to reduce extra reg and optimize it more to gain similar functionality over fewer instruction cycles. I will elaborate this further in later sections
- 
+
 
 ## <a name="Declaring-NEON-ASM-Function"></a> Declaring NEON ASM Function
 
@@ -211,13 +211,13 @@ src/arm/mc_init_tmpl.c
 In mc_inti_tmpl.c all the ASM functions for both 32 bit and 64 bit are declared
 
 for example
-  
+
 ```
 decl_xyz_fn(dav1d_xyz_8bpc_neon);   # delcaring the function
 c->xyz = dav1d_xyz_8bpc_neon;       # hooking to the c object
 ```
 Now if your function is only supported for 32bit arch then you need add under a specific macro like
- 
+
 ```
 #if ARCH_ARM
     c->xyz = dav1d_xyz_8bpc_neon;
@@ -226,11 +226,11 @@ Now if your function is only supported for 32bit arch then you need add under a 
 
 ## <a name="Writing-NEON-ASM-Function-AARCH32"></a> Writing NEON ASM Function for AARCH32
 Now we are ready to implement our assembly function. Definitition of function should be under something like
- 
+
 ```
 function xyz_8bpc_neon, export=1
 ```
-which will export the function in the format of  **dav1d_xyz_8bpc_neon** exactly like how you declared the function in *src/arm/mc_init_tmpl.c*. 
+which will export the function in the format of  **dav1d_xyz_8bpc_neon** exactly like how you declared the function in *src/arm/mc_init_tmpl.c*.
 
 ### <a name="Jump-Table-AARCH32"></a> Jump Table for AARCH32
 
@@ -261,18 +261,18 @@ Jump table for blend function is as follows:
         ldr             r4,  [sp, #12]          // r4 <- h
         ldr             r5,  [sp, #16]          // r5 <- mask
         clz             lr,  r3                 // lr <- leading zeroes of w
-        adr             r3,  L(blend_tbl)       // mov address of blend_tbl to r3 
+        adr             r3,  L(blend_tbl)       // mov address of blend_tbl to r3
         sub             lr,  lr,  #26           // lr <- lr - 26
         ldr             lr,  [r3, lr, lsl #2]   // since each entry is 4 bytes we multiply lr by 4
         add             r3,  r3,  lr            // offset is added to the address if blend_tbl
         bx              r3
 ```
-Further below 
+Further below
 ```
     .word 320f  - L(blend_tbl) + CONFIG_THUMB
  ```
- it's something like (32f - tbl) + tbl. 
- 
+ it's something like (32f - tbl) + tbl.
+
  This kind of form is followed in all the functions in dav1d, in order to maintain the consistency and to work round some bugs in other tools in the case of AARCH32.
 ### <a name="Implementation-AARCH32"></a> Implmentation for AARCH32
 
@@ -298,7 +298,7 @@ So let's try write blend function in ARM assembly using NEON registers as we alr
 
 Now that you have implmented the function, it's time to check if it's giving the right expected output and if so then try to benchmark it.
 
-Checkasm is basically a tool which matches the C and ASM function's outputs, given the same random input. 
+Checkasm is basically a tool which matches the C and ASM function's outputs, given the same random input.
 **Note**: each you make change to the code, you have build it again and check with the following commands.
 
 ```
@@ -355,7 +355,7 @@ After the fixing the issue, to benchmark the function the following command can 
 ```
 ~$ ./build/tests/checkasm  -v --bench=blend
 ```
-By default this will execute code on A73 but if you want the code to run A53 only, it can be dont with 
+By default this will execute code on A73 but if you want the code to run A53 only, it can be dont with
 ```
 taskset -c 0 ./build/tests/checkasm -v --bench=blend
 ```
@@ -364,11 +364,11 @@ Which will output, this will only work if you have accessed the counter register
 blend_w4_8bpc_c: 201.2
 blend_w4_8bpc_neon: 49.8
 ```
-Now here we can clearly see that our code is 5 times efficient than c code. 
+Now here we can clearly see that our code is 5 times efficient than c code.
 
 ### <a name="Optimization-AARCH32"></a> Optimization for AARCH32
 
-Although our code is efficient, we can further increase the efficiency by optimizing the code. 
+Although our code is efficient, we can further increase the efficiency by optimizing the code.
 
 In the project I have touched 3 aspects of optimization.
 
@@ -399,23 +399,23 @@ Let's try this in blend above blend function
 
 ```
 40:
-        vmov.i8         d22, #64        
+        vmov.i8         d22, #64
         add             r12, r0,  r1    // next stride dst += PXSTRIDE(dst_stride)
-        lsl             r1,  r1,  #1    
+        lsl             r1,  r1,  #1
 4:
         vld1.u8         {d2},     [r5]! // loading 8 16bit values i.e two strides together
         vld1.u8         {d1},     [r2]!
         vld1.32         {d0[]},   [r0]
         vld1.32         {d0[1]},  [r12]
-        subs            r4,  r4,  #2    
-        vsub.i8         d3,  d22, d2    
-        vmull.u8        q8,  d1,  d2    
-        vmlal.u8        q8,  d0,  d3    
-        vrshrn.i16      d20, q8,  #6    
-        vst1.32         {d20[0]}, [r0], r1        
-        vst1.32         {d20[1]}, [r12], r1        
-        bgt             4b     
-        pop             {r4-r5,pc}   
+        subs            r4,  r4,  #2
+        vsub.i8         d3,  d22, d2
+        vmull.u8        q8,  d1,  d2
+        vmlal.u8        q8,  d0,  d3
+        vrshrn.i16      d20, q8,  #6
+        vst1.32         {d20[0]}, [r0], r1
+        vst1.32         {d20[1]}, [r12], r1
+        bgt             4b
+        pop             {r4-r5,pc}
 ```
 Now let's benchmark and compare with the previous one
 
@@ -427,7 +427,7 @@ blend_w4_8bpc_neon: 49.8
 ```
 As you can see there's significant amount affect.
 
-### <a name="Instruction-Reordering"></a> Instruction Reordering 
+### <a name="Instruction-Reordering"></a> Instruction Reordering
 
 For example
 
@@ -436,7 +436,7 @@ a = b + c;
 d = a + b;
 c = c + 1;
 ```
-Now as you can see in first expression, a is getting updated and used in the second. So second experssion can't be executed until first expression gets executed. Therefore this set of instrusctions can be reordered as 
+Now as you can see in first expression, a is getting updated and used in the second. So second experssion can't be executed until first expression gets executed. Therefore this set of instrusctions can be reordered as
 ```
 a = b + c;
 c = c + 1;
@@ -448,23 +448,23 @@ Let's try this in blend function
 
 ```
 40:
-        vmov.i8         d22, #64        
-        add             r12, r0,  r1    
-        lsl             r1,  r1,  #1    
+        vmov.i8         d22, #64
+        add             r12, r0,  r1
+        lsl             r1,  r1,  #1
 4:
         vld1.u8         {d2},     [r5,  :64]!
         vld1.u8         {d1},     [r2,  :64]!
         vld1.32         {d0[]},   [r0,  :32]
-        subs            r4,  r4,  #2    
+        subs            r4,  r4,  #2
         vld1.32         {d0[1]},  [r12, :32]
-        vsub.i8         d3,  d22, d2    
-        vmull.u8        q8,  d1,  d2    
-        vmlal.u8        q8,  d0,  d3    
-        vrshrn.i16      d20, q8,  #6    
-        vst1.32         {d20[0]}, [r0,  :32], r1        
-        vst1.32         {d20[1]}, [r12, :32], r1        
-        bgt             4b     
-        pop             {r4-r5,pc}      
+        vsub.i8         d3,  d22, d2
+        vmull.u8        q8,  d1,  d2
+        vmlal.u8        q8,  d0,  d3
+        vrshrn.i16      d20, q8,  #6
+        vst1.32         {d20[0]}, [r0,  :32], r1
+        vst1.32         {d20[1]}, [r12, :32], r1
+        bgt             4b
+        pop             {r4-r5,pc}
 ```
 and now let's compare the benchmarks
 ```
@@ -473,7 +473,7 @@ blend_w4_8bpc_neon: 33.5
 Earlier
 blend_w4_8bpc_neon: 34.3
 ```
-There's hasn't been great difference but as you proceed to higher widths there will be room for more reordering, in this case we had enough registers and also latency issues didn't pop here. only in the vmull/vmlal/vrshrn which can't help. 
+There's hasn't been great difference but as you proceed to higher widths there will be room for more reordering, in this case we had enough registers and also latency issues didn't pop here. only in the vmull/vmlal/vrshrn which can't help.
 
 As another example for w = 8 case
 ```
@@ -501,7 +501,7 @@ As another example for w = 8 case
         pop             {r4-r5,pc}
 ```
 
-as you can see we haven't ordered instructions like 
+as you can see we haven't ordered instructions like
 
 ```
         vmull.u8        q3,  d2,  d4
@@ -586,7 +586,7 @@ Here's the list and details of all commits. I have completed w_mask_444/420/422 
 
 ## <a name="#What's-Left-out"></a> What's Left out!
 
-Here's a [list](https://code.videolan.org/videolan/dav1d/issues/215) of functions to be implemented in ARM. I would like to continue with VideoLAN and my first goal would be to port warp8x8 functiom from AARCH64 to AARCH32. 
+Here's a [list](https://code.videolan.org/videolan/dav1d/issues/215) of functions to be implemented in ARM. I would like to continue with VideoLAN and my first goal would be to port warp8x8 functiom from AARCH64 to AARCH32.
 
 ##  <a name="Final-Note-and-Things-I-learnt"></a> Final Note and Things I learnt
 
@@ -595,4 +595,4 @@ It has been a great journey and a steep learning curve in my career. Right from 
 1. ARM assembly with NEON architecture for both 32 and 64 bit
 2. Understanding of dav1d codebase
 3. Complete the tasks on time
-4. Understand and respond in the review process 
+4. Understand and respond in the review process
