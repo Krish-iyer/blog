@@ -1,4 +1,442 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.7">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-07-06T15:31:08+00:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">krish-iyer.github.io</title><subtitle>dav1d and ARM assembly</subtitle><entry><title type="html">Object Orientation Estimation Algorithm for Visual Feedback Systems</title><link href="http://localhost:4000/drones/2020/05/07/orientation-estimation.html" rel="alternate" type="text/html" title="Object Orientation Estimation Algorithm for Visual Feedback Systems" /><published>2020-05-07T11:32:45+00:00</published><updated>2020-05-07T11:32:45+00:00</updated><id>http://localhost:4000/drones/2020/05/07/orientation-estimation</id><content type="html" xml:base="http://localhost:4000/drones/2020/05/07/orientation-estimation.html"><![CDATA[<h2 id="introduction">Introduction</h2>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.7">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-07-08T20:00:52+00:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">krish-iyer.github.io</title><subtitle>dav1d and ARM assembly</subtitle><entry><title type="html">Pac-man on FPGA</title><link href="http://localhost:4000/pacman/2023/12/06/pacman.html" rel="alternate" type="text/html" title="Pac-man on FPGA" /><published>2023-12-06T11:32:45+00:00</published><updated>2023-12-06T11:32:45+00:00</updated><id>http://localhost:4000/pacman/2023/12/06/pacman</id><content type="html" xml:base="http://localhost:4000/pacman/2023/12/06/pacman.html"><![CDATA[<ol>
+  <li><a href="#1-pacman--the-game">Pacman : The Game</a></li>
+  <li><a href="#2-game-logic">Game Logic</a>
+    <ol>
+      <li><a href="#21-pacman-control">Pacman Control</a></li>
+      <li><a href="#22-ghosts-control">Ghosts Control</a></li>
+      <li><a href="#23-collision">Collision</a>
+        <ol>
+          <li><a href="#231-sprites-and-wall">Sprites and Wall</a></li>
+          <li><a href="#232-among-sprites">Among Sprites</a></li>
+        </ol>
+      </li>
+      <li><a href="#24-food-logic">Food Logic</a></li>
+    </ol>
+  </li>
+  <li><a href="#3-graphical-interface">Graphical Interface</a>
+    <ol>
+      <li><a href="#31-vga-video-graphics-array-module-vga_out--file-vga_outv">VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v)</a>
+        <ol>
+          <li><a href="#311-theory">Theory</a></li>
+          <li><a href="#312-implementation">Implementation</a></li>
+        </ol>
+      </li>
+      <li><a href="#32-map-and-sprites-module-drawcon--file-drawconv">Map and Sprites (module: drawcon ; file: drawcon.v)</a>
+        <ol>
+          <li><a href="#321-block-memory">Block Memory</a></li>
+          <li><a href="#322-scaling-the-map">Scaling the map</a></li>
+          <li><a href="#323-pacman-food">Pacman Food</a></li>
+          <li><a href="#324-controlling-r-g-b">Controlling R, G, B</a></li>
+          <li><a href="#325-map">Map</a></li>
+          <li><a href="#326-pacman-and-ghosts">Pacman and Ghosts</a></li>
+          <li><a href="#327-food">Food</a></li>
+          <li><a href="#328-pose-changing-sprites">Pose Changing Sprites</a></li>
+          <li><a href="#329-score">Score</a></li>
+          <li><a href="#3210-flow-chart">Flow Chart</a></li>
+        </ol>
+      </li>
+      <li><a href="#33-testing">Testing</a></li>
+    </ol>
+  </li>
+  <li><a href="#4-what-could-have-been-done-better">What could have been done better</a>
+     1. <a href="#41-optimizing-food-map">Optimizing food map</a>
+     2. <a href="#42-reset-food-while-resetting-the-game">Reset food while resetting the game</a>
+     3. <a href="#43-change-pose-only-while-moving">Change pose only while moving</a>
+     4. <a href="#44-automated-testing">Automated Testing</a></li>
+  <li><a href="#5-demo">Demo</a></li>
+  <li><a href="#6-references">References</a></li>
+</ol>
+
+<h2 id="1-pacman--the-game">1. Pacman : The Game</h2>
+
+<p><img src="/assets/images/pacman-image-3.png" alt="Cleanflight configurator" style="width: 100%; height: auto;" /></p>
+
+<p>Pacman as a protagonist, has to gain points from eating food and is also chased by ghosts. If ghosts catch Pacman then the game has to be reset. From this, we can draw some building blocks.</p>
+
+<ol>
+  <li>Controlling Pacman and ghost positions.
+    <ol>
+      <li>Controlling Pacman by onboard user inputs</li>
+      <li>Algorithm for ghost control</li>
+      <li>Reset the position once entered from the gateway</li>
+    </ol>
+  </li>
+  <li>Collision of sprites to the wall and each other.</li>
+  <li>If food exists at the current position of Pacman, update the food map and increment the counter.</li>
+</ol>
+
+<h2 id="2-game-logic">2. Game Logic</h2>
+
+<h3 id="21-pacman-control">2.1. Pacman Control</h3>
+
+<p>Pacman shall be controlled on user input and not only that, the input change only should take effect if there’s free space else should continue in the same direction.</p>
+
+<p>User input can be read by a simple module.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="n">input_module</span><span class="p">(</span>
+    <span class="kt">input</span> <span class="n">rbtn</span><span class="p">,</span>
+    <span class="p">...</span>
+    <span class="kt">input</span> <span class="n">clk</span><span class="p">,</span>
+    <span class="p">);</span>
+    <span class="p">...</span>
+    <span class="k">always</span> <span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">clk</span><span class="p">)</span><span class="k">begin</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ubtn</span><span class="p">)</span>
+            <span class="n">reg_move_dir</span> <span class="o">&lt;=</span> <span class="n">UP</span><span class="p">;</span>
+        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">dbtn</span><span class="p">)</span>
+            <span class="n">reg_move_dir</span> <span class="o">&lt;=</span> <span class="n">DOWN</span><span class="p">;</span>
+        <span class="p">...</span>
+    <span class="k">end</span>
+<span class="k">endmodule</span>
+</code></pre></div></div>
+
+<p>valid move detector gives a valid move and only if valid move is a different move, pacman move direction will take affect.</p>
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">...</span>
+<span class="n">valid_move_detector</span> <span class="n">inside_pos_update_valid_move_detector</span> <span class="p">(</span>
+    <span class="p">...</span>
+    <span class="p">.</span><span class="n">valid_moves</span><span class="p">(</span><span class="n">valid_moves</span><span class="p">)</span>
+<span class="p">);</span>
+<span class="p">...</span>
+<span class="k">if</span> <span class="p">((</span><span class="n">move_direction</span> <span class="o">==</span> <span class="n">RIGHT</span><span class="p">)</span>
+    <span class="o">&amp;&amp;</span> <span class="p">((</span><span class="n">valid_moves</span> <span class="o">&amp;</span> <span class="n">RIGHT</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span> <span class="k">begin</span>
+     <span class="c1">// update move</span>
+</code></pre></div></div>
+
+<h3 id="22-ghosts-control">2.2. Ghosts Control</h3>
+
+<p>Ghosts movement is automated and it depends on it’s own previous direction and pacman’s position. There are few restrictions to the ghosts movements for example ghosts cannot move backwards.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">case</span><span class="p">(</span><span class="n">prev_direction</span><span class="p">)</span>
+    <span class="c1">// DOWN is not a posible value if direction is UP</span>
+    <span class="nl">UP:</span>
+        <span class="n">no_reverse_valid_moves</span> <span class="o">&lt;=</span> <span class="n">valid_moves</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">DOWN</span><span class="p">;</span>
+    <span class="p">...</span>
+<span class="k">endcase</span>
+<span class="p">...</span>
+<span class="k">if</span> <span class="p">((</span><span class="n">no_reverse_valid_moves</span> <span class="o">&amp;</span> <span class="n">prev_direction</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">reg_move_dir</span> <span class="o">&lt;=</span> <span class="n">prev_direction</span><span class="p">;</span>
+<span class="p">...</span>
+</code></pre></div></div>
+
+<p>Finding relative position between pacman and the ghosts can be done like this and similary up and down with Y as well.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="p">(</span><span class="n">pacman_curr_pos_x</span> <span class="o">&gt;</span> <span class="n">ghost_curr_pos_x</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="n">horizontal_distance</span>  <span class="o">=</span> <span class="n">pacman_curr_pos_x</span> <span class="o">-</span> <span class="n">ghost_curr_pos_x</span><span class="p">;</span>
+    <span class="n">relative_ghost_location_x</span> <span class="o">=</span> <span class="n">RIGHT</span><span class="p">;</span>
+<span class="k">end</span>
+<span class="k">else</span> <span class="k">begin</span>
+    <span class="n">horizontal_distance</span>  <span class="o">=</span> <span class="n">ghost_curr_pos_x</span> <span class="o">-</span> <span class="n">pacman_curr_pos_x</span><span class="p">;</span>
+    <span class="n">relative_ghost_location_x</span> <span class="o">=</span> <span class="n">LEFT</span><span class="p">;</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>There are few corner cases where decisions of the ghosts cannot be determined for example if previous direction not available, then there’s a priority move implemented which will be assigned to the ghost in case no move can be determined by the algorithm.</p>
+
+<p>Position of the sprites can be wrapped around by reset position if pos_{pacman, gost} &gt; MAX curr_x</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// DISTANCE_BETWEEN_BLOCKS = 16</span>
+<span class="k">parameter</span> <span class="n">WRAP_RIGHT</span><span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">DISTANCE_BETWEEN_BLOCKS</span> <span class="o">+</span> <span class="n">H_VISIBLE_START</span><span class="p">;</span>
+<span class="p">...</span>
+<span class="k">if</span> <span class="p">((</span><span class="n">curr_pos_x</span> <span class="o">-</span> <span class="n">DISTANCE_BETWEEN_BLOCKS</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">WRAP_RIGHT</span> <span class="p">)</span>
+    <span class="n">reg_new_pos_x</span> <span class="o">&lt;=</span> <span class="n">WRAP_LEFT</span><span class="p">;</span>
+
+</code></pre></div></div>
+
+<h3 id="23-collision">2.3. Collision</h3>
+
+<h4 id="231-sprites-and-wall">2.3.1 Sprites and Wall</h4>
+
+<p>Valid move detector also looks for the collision with the wall.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">assign</span> <span class="n">Right</span> <span class="o">=</span> <span class="p">(</span><span class="n">matrix_idx_x</span> <span class="o">==</span> <span class="n">MAT_LAST_IDX</span><span class="p">)</span><span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="n">map</span> <span class="p">[</span><span class="n">idx</span><span class="p">];</span>
+</code></pre></div></div>
+
+<h4 id="232-among-sprites">2.3.2 Among Sprites</h4>
+
+<p>This is quite simple to implement, if any of the gosts position overlap with pacman then a signal is toggled which can be later used by other module to reset game.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">reg_pacman_is_dead</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">pacman_matrix_idx_x</span> <span class="o">==</span> <span class="n">ghost_matrix_idx_x</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">pacman_matrix_idx_y</span> <span class="o">==</span> <span class="n">ghost_matrix_idx_y</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h3 id="24-food-logic">2.4. Food Logic</h3>
+
+<p>The food logic can be easily implemented as the food map is in a different memory. So we just need to check of there was any food, if yes then update the counter and write memory to zero at pacman’s postion.</p>
+
+<h2 id="3-graphical-interface">3. Graphical Interface</h2>
+
+<p>So the very first part of creating a game has to be controlling video output. There could have been a couple of options to select from like HDMI(High-Definition Multimedia Interface), DP(Display Port), DVI(Digital Visual Interface) etc but on NEXYS A7 Dev. board the only video interface connector available is VGA.</p>
+
+<h3 id="31-vga-video-graphics-array-module-vga_out--file-vga_outv">3.1. VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v)</h3>
+
+<h4 id="311-theory">3.1.1. Theory</h4>
+
+<p>A VGA connector carries R, G, B, Vertical sync, Horizaontal sync analog signals. Depending on how fast or slow one triggers hsync and vsync signals, video resolution and refresh rate will be determined by the display and be scaled automatically.</p>
+
+<p>Here were fixed our resolution to 1280x800(addressable) 60Hz. The whole frame(including sync time, front porch, back porch) is going to be 1679*827 i.e 1388533. At 60Hz(count 1388533 60 time a second), it’s going to be 83311980 which tell’s that we need to achieve 83.3 MHz in order to output 60Hz refresh rate  for a 1280x800(addressable) resolution screen.</p>
+
+<h4 id="312-implementation">3.1.2. Implementation</h4>
+
+<p>So the VGA Control circuit has to be synchronous to a 83.3 MHz clock. At every clock edge counter’s needs to incremented or reset after the max values.</p>
+
+<p>We will create two additional counters(curr_x, curr_y) which will be incremented only in the visible region(Hortizontal : 336 - 1615 ; Vertical : 27 - 826) of the screen i.e a counter for 0 - 1280 and 0 - 800. This would make the game logic and other top module easy to manage rather than keeping the track of visible or non-visible region.</p>
+
+<p>A simple synchronous always block would suffice the control the counters</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">always</span><span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">clk</span><span class="p">)</span> <span class="k">begin</span>
+
+    <span class="n">hcount</span> <span class="o">&lt;=</span> <span class="n">hcount</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">hcount</span> <span class="o">==</span> <span class="n">H_COUNT_MAX</span><span class="p">)</span> <span class="k">begin</span>
+        <span class="n">hcount</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="n">vcount</span> <span class="o">&lt;=</span> <span class="n">vcount</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="k">end</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">vcount</span> <span class="o">==</span> <span class="n">V_COUNT_MAX</span><span class="p">)</span> <span class="k">begin</span>
+        <span class="n">vcount</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">end</span>
+
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>hsync, vsync, r, g, b signals could be totally combinational and can be controlled with the conditional operators depending on the sequential counters.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">assign</span> <span class="n">hsync</span> <span class="o">=</span> <span class="n">hcount</span> <span class="o">&lt;=</span> <span class="n">H_SYNC_TOGGLE</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="mi">1</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Now it’s obvious to have clk, r, g, b and input to the module so that it can set actual r, g, b(pix_r, pix_g, pix_b) signals according to the top module. The output should be the curr_x and curr_y which can be used by the top module to check and range r, g, b if required(more explained later).</p>
+
+<p>Rest of the outputs like pix_r, pix_g, pix_b, hsync and vsync should be mapped to the VGA connector pins(specified in the constraint file).</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">set_property</span> <span class="o">-</span><span class="n">dict</span> <span class="o">{</span> <span class="n">PACKAGE_PIN</span> <span class="n">A3</span>    <span class="n">IOSTANDARD</span> <span class="n">LVCMOS33</span> <span class="o">}</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span><span class="n">pix_r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">}</span><span class="p">];</span>
+<span class="p">...</span>
+<span class="n">set_property</span> <span class="o">-</span><span class="n">dict</span> <span class="o">{</span> <span class="n">PACKAGE_PIN</span> <span class="n">B11</span>   <span class="n">IOSTANDARD</span> <span class="n">LVCMOS33</span> <span class="o">}</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span> <span class="n">hsync</span> <span class="o">}</span><span class="p">];</span>
+<span class="n">set_property</span> <span class="o">-</span><span class="n">dict</span> <span class="o">{</span> <span class="n">PACKAGE_PIN</span> <span class="n">B12</span>   <span class="n">IOSTANDARD</span> <span class="n">LVCMOS33</span> <span class="o">}</span> <span class="p">[</span><span class="n">get_ports</span> <span class="o">{</span> <span class="n">vsync</span> <span class="o">}</span><span class="p">];</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+            +-----+-----+               +-----+-----+
+    clk ---&gt;|           |---&gt; pix_r ---&gt;|           |
+      r ---&gt;|           |---&gt; pix_g ---&gt;|           |
+      g ---&gt;|           |---&gt; pix_b ---&gt;|VGA Connec.|
+      b ---&gt;|  vga_out  |---&gt; hsync ---&gt;|           |
+ curr_x &lt;---|           |---&gt; vsync ---&gt;|           |
+ curr_y &lt;---|           |               +-----+-----+
+            +-----+-----+
+</code></pre></div></div>
+
+<h3 id="32-map-and-sprites-module-drawcon--file-drawconv">3.2. Map and Sprites (module: drawcon ; file: drawcon.v)</h3>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>+-----+-----+                     +-----+-----+                  +-----+-----+
+|           | ---&gt;        clk ---&gt;|           | ---&gt;     clk ---&gt;|           |
+|           | ---&gt; pacman_pos ---&gt;|           | ---&gt;       r ---&gt;|           |
+|           | ---&gt; ghosts_pos ---&gt;|           | ---&gt;       g ---&gt;|           |
+| game logic| ---&gt;      score ---&gt;|  drawcon  | ---&gt;       b ---&gt;|  vga_out  |
+|           | ---&gt;   food_row ---&gt;|           | &lt;---  curr_x &lt;---|           |
+|           | ---&gt; food_idx_y &lt;---|           | &lt;---  curr_y &lt;---|           |
++-----+-----+                     +-----+-----+                  +-----+-----+
+</code></pre></div></div>
+
+<p>For drawing a sprite or map, above module should be used and according to the x, y position of the pixel being drawn, r, g, b should be controlled.</p>
+
+<h4 id="321-block-memory">3.2.1. Block Memory</h4>
+
+<p>The map is stored in the block memory. Even though screen resolution is 1280x800 and map should contain value at each pixel but most of the pixels could be replicated and the map could be compacted by a factor 2^N. It’s similar to scaling a 20x20 block to 240x240 where each pixel from 20x20 will be replicated by a factor of 12.</p>
+
+<p>Here in this case, the map for the Pacman game was 80x50 so a replication factor of 16 will eventually scale to 1280x800 which is out screeen resolution. This could be further compacted by a matrix with information of edges and boundaries.</p>
+
+<p>Map was only bi-colored(wall: Ocur Yellow ; Free Spce : Black) so at each point in 80x50 grid could be 0 or 1. If it’s 1 if could reflect the wall and if it’s 0 then free space for pacman and ghosts to move.</p>
+
+<p>Block memory can be read as follows. Where map_idx_y is the vertical indexing i.e whichever vertical index is set, block memory will read the row into map_row which can be output to the VGA accordingly to display.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">pacman_map_blockmem</span> <span class="n">map</span><span class="p">(</span>
+    <span class="p">.</span><span class="n">clka</span><span class="p">(</span><span class="n">clk</span><span class="p">),</span>
+    <span class="p">.</span><span class="n">addra</span><span class="p">($</span><span class="kt">unsigned</span><span class="p">(</span><span class="n">map_idx_y</span><span class="p">)),</span>
+    <span class="p">.</span><span class="n">douta</span><span class="p">(</span><span class="n">map_row</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre></div></div>
+
+<h4 id="322-scaling-the-map">3.2.2. Scaling the map</h4>
+
+<p>For scaling, the objective is to replication each x, y value from the map to a 16x16 block. So the code needs to designed to fetch a new map_row[i] element at every 16th curr_x and update map_idx_y at every 16th curr_y.</p>
+
+<p>So all we need to do is to find a trigger at 16th of curr_x and curr_y. curr_x and curr_y is a 11 bit and 10 bit number respectively which are mere counters so curr_x[4] and curr_y[4] bit will toggled at a step of 16th only catch is that it will be 0 and 1 alternatively. To mitigate this a variables called mod_x and mod_y were declared which are xor’ed with curr_x[4] and curr_y[4] and updated when condition is true.</p>
+
+<p>For example let’s assume mod_x = 0 initially. At curr_x = 16, curr_x[4] == 1 if xor’ed curr_[4] ^  mod_x condition will pass and mod_x will be update to 1 and then at 32 curr_x[4] = 0 and mod_x = 1. Similarly for y.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span><span class="p">(</span><span class="n">curr_x</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">^</span> <span class="n">mod_x</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="n">mod_x</span> <span class="o">&lt;=</span> <span class="n">curr_x</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+    <span class="p">...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h4 id="323-pacman-food">3.2.3. Pacman Food</h4>
+
+<p>To draw pacman’s food which is a mere white square block of size 4x4 pixels there’s no requirement for a sprite and a block memory. We just need to detect if it’s a free space and a 4x4 block centered inside a 16x16 block. A similar trick like previous can be implemented here, we know that curr_x[3:0] and curr_y[3:0] is a 16x16 block which get’s reset at every 16x16 block automatically. Now we just have to find 4x4 block at the center of these 16x16 block which is given by.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span><span class="p">(</span><span class="n">curr_x</span><span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span><span class="mi">6</span> <span class="o">&amp;&amp;</span> <span class="n">curr_x</span><span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">9</span> <span class="o">&amp;&amp;</span> <span class="n">curr_y</span><span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">6</span>  <span class="o">&amp;&amp;</span> <span class="n">curr_y</span><span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">9</span> <span class="o">&amp;&amp;</span> <span class="n">free_space</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="n">draw_food</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="k">end</span>
+<span class="k">else</span> <span class="k">begin</span>
+    <span class="n">draw_food</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>                           curr_x[3:0] = 6   curr_x[3:0] = 9
+                                         |                 |
+                                         |                 |
+                                         |                 |
+                                         |                 |
+                                +--------+--------+--------+--------+
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+     curr_y[3:0] = 6------------+--------+--------+--------+--------+
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                +--------+--------+--------+--------+
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+     curr_y[3:0] = 9------------+--------+--------+--------+--------+
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                |        |        |        |        |
+                                +--------+--------+--------+--------+
+</code></pre></div></div>
+
+<p>As seen above, now whenever draw_food is set to 1 we can set r, g, b to white color. There’s one problem that should be solved first i.e what if there’s empty space and we draw food but pacman has already ate that in that case we shouldn’t draw food. This a fundamental problem in the map, as it needs to represent which all free space blocks has food. So rather than representing map by binary we are supposed increase to 4 bit representation. We thought it’s better to create a copy of a Map but this to RAM memory and not ROM because game logic will update food once pacman is in the food position. Also after every reset, Food RAM mem should be filled up as well, this feature has not been implemented due to the time constraint.</p>
+
+<h4 id="324-controlling-r-g-b">3.2.4. Controlling R, G, B</h4>
+
+<p>This section describes how different sprites, food and wall has been displayed in respect to curr_x and curr_y.</p>
+
+<h4 id="325-map">3.2.5. Map</h4>
+
+<p>As explained in above sections, map is represented as a binary value, 0 for wall and 1 for free space. We can set specific variables accordingly.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">reg</span> <span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span> <span class="n">bg_r</span><span class="p">,</span> <span class="n">bg_g</span><span class="p">,</span> <span class="n">bg_b</span><span class="p">;</span>
+<span class="p">...</span>
+<span class="k">if</span><span class="p">(</span><span class="n">map_pix</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="n">bg_r</span> <span class="o">&lt;=</span> <span class="mi">9</span><span class="p">;</span>
+    <span class="p">...</span>
+<span class="k">end</span>
+<span class="k">else</span> <span class="k">begin</span>
+    <span class="n">bg_r</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>And correspondingly set to the output of the module.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">always</span><span class="o">@</span><span class="p">(</span><span class="kt">posedge</span> <span class="n">clk</span><span class="p">)</span> <span class="k">begin</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">pacman</span><span class="p">)</span>
+    <span class="p">...</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">ghosts</span><span class="p">)</span>
+    <span class="p">...</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+    <span class="p">...</span>
+    <span class="k">else</span> <span class="k">if</span><span class="p">(</span><span class="n">food</span><span class="p">)</span>
+    <span class="p">...</span>
+    <span class="k">else</span>
+        <span class="n">r</span> <span class="o">&lt;=</span> <span class="n">bg_r</span><span class="p">;</span>
+        <span class="p">...</span>
+<span class="k">endmodule</span>
+</code></pre></div></div>
+
+<h4 id="326-pacman-and-ghosts">3.2.6. Pacman and Ghosts</h4>
+
+<p>Pacman and ghosts display is quite simple, all we need to do is get the position from the game logic and check if curr_x and curr_y is in the position, if yes then we set output accordingly. Similar to map, sprites are also written to a block mem and read depending y index.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="p">((</span><span class="n">draw_x</span> <span class="o">&gt;</span> <span class="n">pacman_blkpos_x</span>
+    <span class="o">&amp;&amp;</span> <span class="n">draw_x</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">pacman_blkpos_x</span> <span class="o">+</span> <span class="mi">16</span><span class="p">))</span>
+    <span class="p">...)</span> <span class="k">begin</span>
+    <span class="p">...</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">pacman_sprite_row</span><span class="p">[</span><span class="n">draw_x</span> <span class="o">-</span> <span class="n">pacman_blkpos_x</span><span class="p">])</span> <span class="k">begin</span>
+        <span class="n">r</span> <span class="o">&lt;=</span> <span class="n">blk_r</span><span class="p">;</span>
+        <span class="p">...</span>
+    <span class="k">end</span>
+    <span class="k">else</span> <span class="k">begin</span>
+        <span class="n">r</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">...</span>
+    <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h4 id="327-food">3.2.7. Food</h4>
+
+<p>From the above section we already discussed how we set food and now we just need to set to white color whenever it’s true. The only challenge in displaying food is that, food map needs to be updated the game logic and read by the drawcon so we create a RAM with 2 ports where one port is used by the game logic and another one by drawcon.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">pacman</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">ghosts</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">score</span> <span class="o">&amp;&amp;</span> <span class="n">food</span><span class="p">)</span> <span class="k">begin</span>
+    <span class="n">r</span> <span class="o">&lt;=</span> <span class="mi">15</span><span class="p">;</span>
+    <span class="p">...</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h4 id="328-pose-changing-sprites">3.2.8. Pose Changing Sprites</h4>
+
+<p>We can conviniently change pose of the sprites as well for example pacman pose form wide mouth to closed mouth which make the user feel that pacman is eating food as it proceeds. Similarly goes for ghosts.</p>
+
+<p>This can be easily, so let’s say COE file contains a pose from 0-15 and another one from 15 - 31. We can just add a add multiple of 16 to the index pointing the memory.</p>
+
+<div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">pacman_sprite_idx</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">draw_y</span> <span class="o">-</span> <span class="n">pacman_blkpos_y</span><span class="p">)</span> <span class="o">+</span> <span class="n">pacman_pos</span> <span class="o">*</span> <span class="mi">16</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h4 id="329-score">3.2.9. Score</h4>
+
+<p>The score needs be 4 digit where each digit goes from 0-9 which can be represented as 4 bit. The digits can be sprites in the memory and selected based on the y indexing by a factor of 16 as mentioned above. To convert an 4 digit integer to 4 bit individual binary numbers will require a decimal to BCD converter.</p>
+
+<h4 id="3210-flow-chart">3.2.10. Flow Chart</h4>
+
+<center>
+<img src="/assets/images/drawcon_flow_chart.svg" alt="Cleanflight configurator" style="width: 30%; height: auto;" />
+</center>
+<h3 id="33-testing">3.3 Testing</h3>
+
+<p>Testing was done by simply by running a clk and fixing the pacman position. For VGA vsync, hsync values were monitored. It was also verified if hcount and vcount reaches max values and get reset immediately after that as seen in below graphs.</p>
+
+<p><img src="/assets/images/pacman-image-2.png" alt="Cleanflight configurator" style="width: 100%; height: auto;" />
+<img src="/assets/images/pacman-image-1.png" alt="Cleanflight configurator" style="width: 100%; height: auto;" />
+<img src="/assets/images/pacman-image.png" alt="Cleanflight configurator" style="width: 100%; height: auto;" /></p>
+
+<p>It can be observed in the below screenshot that map_rows are fetch corresponding to the y index that’s set by drawcon.</p>
+
+<p>Testing could have automatically tested by conditions in the testbench. For example it could be tested if hcount reaches to 1679 and reset after that.</p>
+
+<h2 id="4-what-could-have-been-done-better">4. What could have been done better</h2>
+
+<h3 id="41-optimizing-food-map">4.1 Optimizing food map</h3>
+
+<p>The food map could have been integrated with main map and with some safe writes, the number signals could have been reduced.</p>
+
+<h3 id="42-reset-food-while-resetting-the-game">4.2 Reset food while resetting the game</h3>
+
+<p>We were not able to reset food once the game reset, one needs to flash bitstream again in order restore food again. This could have mitigated by reading from a ROM and copying to RAM at the start of the game.</p>
+
+<h3 id="43-change-pose-only-while-moving">4.3 Change pose only while moving</h3>
+
+<p>Right now pacman and ghosts pose(wide to close) is changed at every (100MHz/2^22) no matter if pacman is moving or not. Pose should only be triggered while pacman and ghost are moving.</p>
+
+<h3 id="44-automated-testing">4.4 Automated Testing</h3>
+
+<p>Testing could have been automated rather than manual scrolling and validating signals.</p>
+
+<h2 id="5-demo">5. Demo</h2>
+
+<video width="100%" controls="">
+  <source src="/assets/images/Pacman Video Gameplay.mp4" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+<h2 id="6-references">6. References</h2>
+
+<ol>
+  <li><a href="https://nandland.com/binary-to-bcd-the-double-dabbler/">Decimal to BCD Converter</a></li>
+  <li><a href="https://gitlab.kaust.edu.sa/fahmysa/cs256-fall23/-/tree/master/classproject">Project Description</a></li>
+  <li><a href="https://gameinternals.com/understanding-pac-man-ghost-behavior">Pacman Game Logic</a></li>
+</ol>]]></content><author><name></name></author><category term="pacman" /><summary type="html"><![CDATA[Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v) Theory Implementation Map and Sprites (module: drawcon ; file: drawcon.v) Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better 1. Optimizing food map 2. Reset food while resetting the game 3. Change pose only while moving 4. Automated Testing Demo References]]></summary></entry><entry><title type="html">Object Orientation Estimation Algorithm for Visual Feedback Systems</title><link href="http://localhost:4000/drones/2020/05/07/orientation-estimation.html" rel="alternate" type="text/html" title="Object Orientation Estimation Algorithm for Visual Feedback Systems" /><published>2020-05-07T11:32:45+00:00</published><updated>2020-05-07T11:32:45+00:00</updated><id>http://localhost:4000/drones/2020/05/07/orientation-estimation</id><content type="html" xml:base="http://localhost:4000/drones/2020/05/07/orientation-estimation.html"><![CDATA[<h2 id="introduction">Introduction</h2>
 
 <p>Let’s try to demonstrate a simple statistical approach to find the orientation of the object. There are already existing complex solutions [4] [5] which draw a significant amount of CPU resources, making it impractical to implement in real-time systems. Especially for moving systems, a delay in the orientation could cost a large deviation(error) from the reference. One of the closest approaches is discussed by Dulio Furtado and Fulton T. Ray, Jr [1].</p>
 
@@ -1221,25 +1659,4 @@ and will be reading the response of commands. To proceed further in sequences it
 <p>That ‘ll be all the milestones which will be implemented in the third phase, hopefully :). The driver will be favorable to SD memory card rather MultiMedia card. MultiMedia support can be added later.I think the only big obstacle, we need pass through is reading the response for a particular command. Rest all things and implementation of sequences will go smooth. It is going to be a big challenge to implement these 
 within 3 weeks of time but still if some delay comes up then I would like to extend the internship period and at least complete third phase plan.</p>
 
-<p>Thanks for reading :)</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[So here we are in the final week of the second phase of this project. I would like to address what was planned for this phase and what we have achieved and will proceed to plan for the third phase.]]></summary></entry><entry><title type="html">Week #8</title><link href="http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html" rel="alternate" type="text/html" title="Week #8" /><published>2018-07-09T14:39:54+00:00</published><updated>2018-07-09T14:39:54+00:00</updated><id>http://localhost:4000/haiku/2018/07/09/%5Bgsoc_2018_sdhci_mmc_driver%5D_week_8</id><content type="html" xml:base="http://localhost:4000/haiku/2018/07/09/gsoc_2018_sdhci_mmc_driver-_week_8.html"><![CDATA[<p>Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in <a href="https://www.sdcard.org/downloads/pls/pdf/index.php?p=Part1_Physical_Layer_Simplified_Specification_Ver1.10.jpg&amp;f=Part1_Physical_Layer_Simplified_Specification_Ver1.10.pdf&amp;e=EN_P1110">SD Memory Card PhysicalLayer Specification</a>. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config</p>
-
-<ol>
-  <li>SPI mode</li>
-  <li>Response register-&gt;R3</li>
-  <li>Abbrevation-&gt;READ_OCR</li>
-  <li>Description-&gt;Reads the OCR register of a card.</li>
-</ol>
-
-<p>From the details, I have set the command index bits to 58, response type to 10 and rest all bits are set to 0 after the RESET_ALL command. After setting up the command register, we read the R3 register i.e response registers and it was showing no response(0). For the more specific step of setting up command bits, there’s a flow chart on the page: 97 figure: 39 but still I was not sure about the SPI mode operation and for that, we enabled 4-bit mode in host control register and still it didn’t work.</p>
-
-<p>Keeping that aside, as suggested by @phoudoin I tried setting up the bus manager and creating the SDHCIBusController object toperform the sequences. For setting up the bus manager I have referred virtio bus manager and created a mmc_module.cpp forcreating a module, I have described a bit about the module in my previous blogs. Like any other module I need minimum functions, in this case, it was</p>
-
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mmc_bus_init() // creates an object of the class(MMCBus) and binds with a pointer *_device
-mmc_bus_uninit() // delete the object created by init()  This module also has a device like any other module which has the function
-
-mmc_bus_added_device() // confirms the device and register the node You might have notices which creating the object with have used the operator new[], it actually returns a null pointer instead of a throwing an exception.
-</code></pre></div></div>
-
-<p>For defining the class we have created a file mmc_bus.cpp which currently only have few data members and member functions, it’s pretty much functioning. Now I need to bind the sequence functions like set_clock(0, reset() to the class. We have defined a pointer of structure sdhci_mmc_bus_interface which is defined in sdhci_pci.h, which will do the trick and can access the function pointers. For now, it’s like bus_manager if not attached to the main driver code. That leaves with our OCR issue incomplete. I will try to complete the power sequence and attach the bus manager to main driver code.</p>
-
-<p>I have pushed the code to <a href="https://review.haiku-os.org/#/c/haiku/+/318/">gerrit</a>, feel free to review it. I will improving the coding style more by this week :).</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[Hey guys! Last week we have improved the code and made it more readable. We have completed the reset and clock sequence and proceed with power sequence. In the 4th step of the sequence, it asks to get the Operation Conditions Register(OCR) value of SD card. In the SD host controller spec, in command register there is command index bits which mention about setting up command number specified in bits 45-40 of the command-format in SD Memory Card PhysicalLayer Specification. Hence, in command format they mentioned about command index, there we figured out that our command of interest is CMD58 which has following config]]></summary></entry></feed>
+<p>Thanks for reading :)</p>]]></content><author><name></name></author><category term="[&quot;haiku&quot;]" /><summary type="html"><![CDATA[So here we are in the final week of the second phase of this project. I would like to address what was planned for this phase and what we have achieved and will proceed to plan for the third phase.]]></summary></entry></feed>
