@@ -17,8 +17,8 @@
 <meta name="generator" content="Jekyll v3.8.7" />
 <meta property="og:title" content="Pac-man on FPGA" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v) Theory Implementation Map and Sprites (module: drawcon ; file: drawcon.v) Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better 1. Optimizing food map 2. Reset food while resetting the game 3. Change pose only while moving 4. Automated Testing Demo References" />
-<meta property="og:description" content="Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v) Theory Implementation Map and Sprites (module: drawcon ; file: drawcon.v) Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better 1. Optimizing food map 2. Reset food while resetting the game 3. Change pose only while moving 4. Automated Testing Demo References" />
+<meta name="description" content="Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) Theory Implementation Map and Sprite Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better Optimizing food map Reset food while resetting the game Change pose only while moving Automated Testing Demo References" />
+<meta property="og:description" content="Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) Theory Implementation Map and Sprite Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better Optimizing food map Reset food while resetting the game Change pose only while moving Automated Testing Demo References" />
 <link rel="canonical" href="http://localhost:4000/pacman/2023/12/06/pacman.html" />
 <meta property="og:url" content="http://localhost:4000/pacman/2023/12/06/pacman.html" />
 <meta property="og:site_name" content="krish-iyer.github.io" />
@@ -27,7 +27,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Pac-man on FPGA" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-12-06T11:32:45+00:00","datePublished":"2023-12-06T11:32:45+00:00","description":"Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v) Theory Implementation Map and Sprites (module: drawcon ; file: drawcon.v) Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better 1. Optimizing food map 2. Reset food while resetting the game 3. Change pose only while moving 4. Automated Testing Demo References","headline":"Pac-man on FPGA","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/pacman/2023/12/06/pacman.html"},"url":"http://localhost:4000/pacman/2023/12/06/pacman.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-12-06T11:32:45+00:00","datePublished":"2023-12-06T11:32:45+00:00","description":"Pacman : The Game Game Logic Pacman Control Ghosts Control Collision Sprites and Wall Among Sprites Food Logic Graphical Interface VGA (Video Graphics Array) Theory Implementation Map and Sprite Block Memory Scaling the map Pacman Food Controlling R, G, B Map Pacman and Ghosts Food Pose Changing Sprites Score Flow Chart Testing What could have been done better Optimizing food map Reset food while resetting the game Change pose only while moving Automated Testing Demo References","headline":"Pac-man on FPGA","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/pacman/2023/12/06/pacman.html"},"url":"http://localhost:4000/pacman/2023/12/06/pacman.html"}</script>
 <!-- End Jekyll SEO tag -->
 <script>
 MathJax = {
@@ -47,7 +47,7 @@ MathJax = {
 <body>
     <div class="container"><header>
   <div class="menu">
-    <ul><li><a href="/">/home</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
+    <ul><li><a href="/">/home</a></li><li><a href="/assets/Krishnan-Iyer-Resume.pdf" target="_blank" rel="noopener noreferrer">/cv</a></li><li><a href="/about/">/about</a></li><li><a href="/contact">/contact</a></li></ul>
   </div>
 </header>
 <main>
@@ -73,13 +73,13 @@ MathJax = {
   </li>
   <li><a href="#3-graphical-interface">Graphical Interface</a>
     <ol>
-      <li><a href="#31-vga-video-graphics-array-module-vga_out--file-vga_outv">VGA (Video Graphics Array) (module: vga_out ; file: vga_out.v)</a>
+      <li><a href="#31-vga-video-graphics-array-module-vga_out--file-vga_outv">VGA (Video Graphics Array)</a>
         <ol>
           <li><a href="#311-theory">Theory</a></li>
           <li><a href="#312-implementation">Implementation</a></li>
         </ol>
       </li>
-      <li><a href="#32-map-and-sprites-module-drawcon--file-drawconv">Map and Sprites (module: drawcon ; file: drawcon.v)</a>
+      <li><a href="#32-map-and-sprites-module-drawcon--file-drawconv">Map and Sprite</a>
         <ol>
           <li><a href="#321-block-memory">Block Memory</a></li>
           <li><a href="#322-scaling-the-map">Scaling the map</a></li>
@@ -97,10 +97,13 @@ MathJax = {
     </ol>
   </li>
   <li><a href="#4-what-could-have-been-done-better">What could have been done better</a>
-     1. <a href="#41-optimizing-food-map">Optimizing food map</a>
-     2. <a href="#42-reset-food-while-resetting-the-game">Reset food while resetting the game</a>
-     3. <a href="#43-change-pose-only-while-moving">Change pose only while moving</a>
-     4. <a href="#44-automated-testing">Automated Testing</a></li>
+    <ol>
+      <li><a href="#41-optimizing-food-map">Optimizing food map</a></li>
+      <li><a href="#42-reset-food-while-resetting-the-game">Reset food while resetting the game</a></li>
+      <li><a href="#43-change-pose-only-while-moving">Change pose only while moving</a></li>
+      <li><a href="#44-automated-testing">Automated Testing</a></li>
+    </ol>
+  </li>
   <li><a href="#5-demo">Demo</a></li>
   <li><a href="#6-references">References</a></li>
 </ol>
@@ -109,27 +112,27 @@ MathJax = {
 
 <p><img src="/assets/images/pacman-image-3.png" alt="Cleanflight configurator" style="width: 100%; height: auto;" /></p>
 
-<p>Pacman as a protagonist, has to gain points from eating food and is also chased by ghosts. If ghosts catch Pacman then the game has to be reset. From this, we can draw some building blocks.</p>
+<p>Pacman, as the protagonist, gains points by eating food but is also chased by ghosts. If a ghost catches Pacman, the game resets. From this, we can outline several key components:</p>
 
 <ol>
   <li>Controlling Pacman and ghost positions.
     <ol>
-      <li>Controlling Pacman by onboard user inputs</li>
-      <li>Algorithm for ghost control</li>
-      <li>Reset the position once entered from the gateway</li>
+      <li>Controlling Pacman using user inputs.</li>
+      <li>Implementing an algorithm for ghost movement.</li>
+      <li>Resetting positions when entering gateways.</li>
     </ol>
   </li>
-  <li>Collision of sprites to the wall and each other.</li>
-  <li>If food exists at the current position of Pacman, update the food map and increment the counter.</li>
+  <li>Handling collisions between sprites (e.g., walls, other characters).</li>
+  <li>Updating the food map and incrementing the counter when Pacman eats food at its current position.</li>
 </ol>
 
 <h2 id="2-game-logic">2. Game Logic</h2>
 
 <h3 id="21-pacman-control">2.1. Pacman Control</h3>
 
-<p>Pacman shall be controlled on user input and not only that, the input change only should take effect if there’s free space else should continue in the same direction.</p>
+<p>Pacman is controlled based on user input, where the direction change only occurs if there is free space; otherwise, Pacman continues in the same direction.</p>
 
-<p>User input can be read by a simple module.</p>
+<p>User input is handled by a simple module.</p>
 
 <div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">module</span> <span class="n">input_module</span><span class="p">(</span>
     <span class="kt">input</span> <span class="n">rbtn</span><span class="p">,</span>
@@ -146,8 +149,7 @@ MathJax = {
     <span class="k">end</span>
 <span class="k">endmodule</span>
 </code></pre></div></div>
-
-<p>valid move detector gives a valid move and only if valid move is a different move, pacman move direction will take affect.</p>
+<p>The valid move detector determines if a move is valid. Pacman’s direction changes only if the valid move is different from the current move direction.</p>
 <div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">...</span>
 <span class="n">valid_move_detector</span> <span class="n">inside_pos_update_valid_move_detector</span> <span class="p">(</span>
     <span class="p">...</span>
@@ -161,7 +163,7 @@ MathJax = {
 
 <h3 id="22-ghosts-control">2.2. Ghosts Control</h3>
 
-<p>Ghosts movement is automated and it depends on it’s own previous direction and pacman’s position. There are few restrictions to the ghosts movements for example ghosts cannot move backwards.</p>
+<p>To determine the relative position between Pacman and the ghosts, you can use the following approach. Similarly, you can calculate positions vertically using the Y-coordinate.</p>
 
 <div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">case</span><span class="p">(</span><span class="n">prev_direction</span><span class="p">)</span>
     <span class="c1">// DOWN is not a posible value if direction is UP</span>
@@ -187,9 +189,9 @@ MathJax = {
 <span class="k">end</span>
 </code></pre></div></div>
 
-<p>There are few corner cases where decisions of the ghosts cannot be determined for example if previous direction not available, then there’s a priority move implemented which will be assigned to the ghost in case no move can be determined by the algorithm.</p>
+<p>There are a few corner cases where the ghosts’ decisions cannot be determined. For instance, if the previous direction is not available, a priority move is implemented. This move is assigned to the ghost when the algorithm cannot determine any other move.</p>
 
-<p>Position of the sprites can be wrapped around by reset position if pos_{pacman, gost} &gt; MAX curr_x</p>
+<p>The position of the sprites can wrap around by resetting their position if <code class="highlighter-rouge">pos_{pacman, ghost} &gt; MAX curr_x</code>.</p>
 
 <div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// DISTANCE_BETWEEN_BLOCKS = 16</span>
 <span class="k">parameter</span> <span class="n">WRAP_RIGHT</span><span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">DISTANCE_BETWEEN_BLOCKS</span> <span class="o">+</span> <span class="n">H_VISIBLE_START</span><span class="p">;</span>
@@ -210,7 +212,7 @@ MathJax = {
 
 <h4 id="232-among-sprites">2.3.2 Among Sprites</h4>
 
-<p>This is quite simple to implement, if any of the gosts position overlap with pacman then a signal is toggled which can be later used by other module to reset game.</p>
+<p>Implementing this is straightforward: if any ghost’s position overlaps with Pacman’s, a signal is toggled. This signal can later be used by another module to reset the game.</p>
 
 <div class="language-verilog highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">reg_pacman_is_dead</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">pacman_matrix_idx_x</span> <span class="o">==</span> <span class="n">ghost_matrix_idx_x</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">pacman_matrix_idx_y</span> <span class="o">==</span> <span class="n">ghost_matrix_idx_y</span><span class="p">);</span>
 </code></pre></div></div>
