@@ -7,7 +7,9 @@ header_pages:
   - index.md
   - about.md
   - contact.md
-  
+
+cv_pdf: "/assets/Krishnan-Iyer-Resume.pdf"
+
 style: light
 
 #footer: 'follow us on <a href="https://twitter.com/">twitter</a>'
