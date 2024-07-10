@@ -19,20 +19,6 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-06-26T09:34:41+00:00","datePublished":"2018-06-26T09:34:41+00:00","description":"Hello everyone! Here’s the update of week #6, in the last update we were not able to access the registers. When we tried mapping it, there were all zeros. so we knew there’s something wrong in the way we were accessing the register and in between this we got to know that qemu emulation for sdhc hardware only supports spec version 2 and 3 and the spec which we intended to implement was 4.2.Later, we got to know that this pcicmd &amp;= ~(PCI_command_memory | PCI_command_int_disable); was disabling PCI I/O decoding and ensuring that PCI_command_memory is set but it turns out that on haiku the PCI bus let the driver to decide whether what kind of support it need from the device. Which kinda should be automatic and restricted for a driver. Soon after commenting out the clearing command we got some value in the register mapping through MMUIO and that also confirmed that mapping of registers is working, that was a relief. My next objective was to detect the card some how by enabling few bits. So I thought it better and easy to use test registers without much complication.","headline":"Week #6","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/06/26/gsoc_2018_sdhci_mmc_driver-_week_6.html"},"url":"http://localhost:4000/haiku/2018/06/26/gsoc_2018_sdhci_mmc_driver-_week_6.html"}</script>
 <!-- End Jekyll SEO tag -->
-<script>
-MathJax = {
-  tex: {
-    inlineMath: [ ['$', '$'], ['\\(', '\\)'] ]
-  },
-  svg: {
-    fontCache: 'global'
-  }
-};
-</script>
-<script
-  type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-</script>
 <link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
 <body>
     <div class="container"><header>

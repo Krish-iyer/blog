@@ -19,20 +19,6 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-06-11T13:04:48+00:00","datePublished":"2018-06-11T13:04:48+00:00","description":"Hey, here I am with another update! Last time I mentioned about splitting up the module but due to time constraint we agreed to skip that currently and move forward. After setting up the bus, I thought it would be bus manager which needs to be setted up for data transfer and other read and write operations but it turns out to few things which need to be done before that and it’s actually not the bus manager who do these operations, it will just create an instance of the interrupts and the operations to be done, and call back after it’s done. I was referring to virtio subsystem’s driver layout so wasn’t able to notice a difference between virtio and sdhc and i.e there are slots that needs to be attached to the bus(MMC bus) unlike in virtio where devices are attached.","headline":"Week #5","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/haiku/2018/06/11/gsoc_2018_sdhci_mmc_driver-_week_5.html"},"url":"http://localhost:4000/haiku/2018/06/11/gsoc_2018_sdhci_mmc_driver-_week_5.html"}</script>
 <!-- End Jekyll SEO tag -->
-<script>
-MathJax = {
-  tex: {
-    inlineMath: [ ['$', '$'], ['\\(', '\\)'] ]
-  },
-  svg: {
-    fontCache: 'global'
-  }
-};
-</script>
-<script
-  type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-</script>
 <link rel="stylesheet" type="text/css" href="/assets/main-light.css"></head>
 <body>
     <div class="container"><header>
